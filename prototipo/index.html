@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Softcom | Plantão Noturno</title>
+  <style>
+    :root{
+      --bg:#f6f8fc;
+      --panel:#ffffff;
+      --line:#e7ebf3;
+      --text:#172033;
+      --muted:#6f7890;
+      --nav:#0e1b33;
+      --nav2:#122545;
+      --primary:#3158ff;
+      --primary-soft:#eef1ff;
+      --success:#1ca46c;
+      --danger:#e24545;
+      --shadow:0 12px 30px rgba(20,33,61,.06);
+      --radius:14px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    button,input,select,textarea{font:inherit}
+
+    .app{min-height:100vh;display:flex}
+
+    .sidebar{
+      width:245px;
+      background:linear-gradient(180deg,var(--nav),#0b1830);
+      color:#dfe7f8;
+      padding:22px 14px;
+      position:fixed;
+      inset:0 auto 0 0;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:0 8px 10px;
+      font-size:21px;
+      font-weight:800;
+      color:#fff;
+    }
+
+    .brand-mark{
+      width:34px;height:34px;border-radius:11px;
+      display:grid;place-items:center;
+      background:linear-gradient(135deg,#345cff,#50a0ff);
+      box-shadow:0 8px 18px rgba(49,88,255,.35);
+      font-weight:900;
+    }
+
+    .pill{
+      margin:0 6px;
+      border:1px solid rgba(255,255,255,.07);
+      background:rgba(255,255,255,.08);
+      border-radius:999px;
+      padding:9px 12px;
+      font-size:13px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    nav{display:flex;flex-direction:column;gap:6px}
+    .nav-item{
+      padding:11px 12px;border-radius:10px;
+      text-decoration:none;color:#dce5f6;
+      display:flex;align-items:center;gap:10px;
+      font-size:14px;font-weight:600;
+    }
+    .nav-item:hover{background:rgba(255,255,255,.06)}
+    .nav-item.active{background:linear-gradient(90deg,#345cff,#284be0);color:#fff}
+
+    .nav-spacer{height:8px;border-top:1px solid rgba(255,255,255,.08);margin:4px 8px}
+
+    .user-card{
+      margin-top:auto;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      padding:12px;
+      display:flex;gap:10px;align-items:center;
+    }
+    .avatar{
+      width:36px;height:36px;border-radius:50%;
+      background:#697a9b;display:grid;place-items:center;
+      font-weight:700;color:#fff
+    }
+    .user-name{font-size:13px;font-weight:700}
+    .user-role{font-size:11px;color:#a9b5cc;margin-top:2px}
+    .online{font-size:11px;color:#9bd7b6;margin-top:4px}
+
+    main{
+      flex:1;
+      margin-left:245px;
+      padding:28px 28px 80px;
+    }
+
+    .topbar{
+      display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:20px
+    }
+
+    .breadcrumbs{font-size:13px;color:var(--muted);margin-bottom:12px}
+    h1{margin:0;font-size:28px;letter-spacing:-.4px}
+    .subtitle{margin:6px 0 0;color:var(--muted);font-size:14px}
+
+    .top-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .box{
+      background:var(--panel);border:1px solid var(--line);border-radius:10px;
+      padding:10px 13px;font-size:13px;color:#49536b;
+    }
+    .help{color:var(--primary);border-color:#bdc7ff;font-weight:700}
+
+    .layout{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 290px;
+      gap:18px;
+      align-items:start;
+    }
+
+    .content{display:flex;flex-direction:column;gap:14px}
+    .card{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:18px;
+    }
+
+    .card.highlight{border-color:#b9c3ff;box-shadow:0 0 0 2px rgba(49,88,255,.05)}
+    .section-title{font-size:15px;font-weight:800;margin:0 0 14px}
+    .section-title.primary{color:#3656d9}
+
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+    .grid-main{display:grid;grid-template-columns:.9fr 1.2fr 1fr;gap:14px}
+    .divider{height:1px;background:var(--line);margin:18px 0}
+
+    label{display:block;font-size:12px;font-weight:700;margin:0 0 7px}
+    .req{color:var(--danger)}
+    input[type="text"],input[type="number"],select,textarea{
+      width:100%;
+      border:1px solid #d9dfeb;
+      border-radius:9px;
+      padding:11px 12px;
+      background:#fff;
+      color:var(--text);
+      outline:none;
+      transition:.18s;
+    }
+    input:focus,select:focus,textarea:focus{
+      border-color:#8da0ff;
+      box-shadow:0 0 0 3px rgba(49,88,255,.10);
+    }
+    textarea{resize:vertical;min-height:105px}
+    .small-textarea{min-height:78px}
+
+    .client-input-wrap{
+      position:relative;
+      display:flex;
+      align-items:center;
+    }
+    .client-input-prefix{
+      position:absolute;
+      left:11px;
+      width:34px;
+      height:30px;
+      border-radius:7px;
+      display:grid;
+      place-items:center;
+      background:var(--primary-soft);
+      color:var(--primary);
+      font-size:12px;
+      font-weight:800;
+      pointer-events:none;
+    }
+    .client-input-wrap input{
+      padding-left:54px;
+      min-height:43px;
+    }
+
+    .radio-wrap,.check-wrap{
+      display:flex;gap:16px;flex-wrap:wrap
+    }
+    .radio-line,.check-line{
+      display:flex;align-items:center;gap:7px;font-size:13px;color:#364057
+    }
+
+    input[type="radio"],input[type="checkbox"]{accent-color:var(--primary)}
+
+    .origin-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px 14px;
+    }
+
+    .hint{
+      margin-top:12px;
+      border-radius:9px;
+      background:var(--primary-soft);
+      color:#4056bb;
+      padding:10px 12px;
+      font-size:12px;
+    }
+
+    .results{
+      display:flex;flex-direction:column;gap:9px
+    }
+
+    .summary{
+      position:sticky;top:20px;
+    }
+    .summary h3{margin:0 0 12px;font-size:15px}
+    .summary-item{
+      display:grid;grid-template-columns:38px 1fr;gap:10px;align-items:center;
+      padding:10px 0;border-bottom:1px solid var(--line)
+    }
+    .summary-item:last-of-type{border-bottom:0}
+    .summary-icon{
+      width:36px;height:36px;border-radius:9px;background:var(--primary-soft);
+      color:var(--primary);display:grid;place-items:center;font-weight:800
+    }
+    .summary-label{font-size:12px;font-weight:700}
+    .summary-value{font-size:12px;color:var(--muted);margin-top:3px;word-break:break-word}
+
+    .summary-note{
+      margin-top:14px;border:1px solid #c8d0ff;background:#f7f8ff;color:#5361b4;
+      border-radius:9px;padding:10px;font-size:12px
+    }
+
+    .footer-actions{
+      display:flex;justify-content:flex-end;gap:10px;margin-top:2px;
+    }
+    .btn{
+      border:0;border-radius:9px;padding:11px 18px;font-weight:800;cursor:pointer;
+    }
+    .btn-secondary{background:#fff;border:1px solid #d8deea;color:#465067}
+    .btn-primary{background:linear-gradient(90deg,#345cff,#2549db);color:white;min-width:210px}
+    .btn-primary:hover{filter:brightness(.98)}
+
+    .hidden{display:none !important}
+    .toast{
+      position:fixed;right:24px;bottom:24px;
+      background:#10233f;color:white;border-radius:12px;
+      box-shadow:0 16px 40px rgba(0,0,0,.18);
+      padding:14px 16px;min-width:280px;display:none
+    }
+    .toast.show{display:block}
+    .toast strong{display:block;margin-bottom:3px}
+
+    @media(max-width:1100px){
+      .layout{grid-template-columns:1fr}
+      .summary{position:static}
+      .origin-grid{grid-template-columns:repeat(2,1fr)}
+      .grid-main{grid-template-columns:1fr}
+    }
+
+    @media(max-width:780px){
+      .sidebar{display:none}
+      main{margin-left:0;padding:18px}
+      .topbar{flex-direction:column}
+      .grid-2,.grid-3{grid-template-columns:1fr}
+      .origin-grid{grid-template-columns:1fr}
+      .footer-actions{flex-direction:column}
+      .btn-primary{width:100%}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      Softcom
+    </div>
+
+    <div class="pill">🌙 Plantão Noturno</div>
+
+    <nav>
+      <a class="nav-item" href="painel.html">▥ Painel do plantão</a>
+      <a class="nav-item active" href="index.html">✎ Registrar demanda</a>
+      <a class="nav-item" href="demandas.html">▤ Demandas registradas</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div>
+        <div class="breadcrumbs">Plantão &nbsp;›&nbsp; Registrar demanda</div>
+        <h1>Novo registro de demanda</h1>
+        <p class="subtitle">Registre rapidamente de onde vêm as demandas recebidas pelo plantão.</p>
+      </div>
+      <div class="top-actions">
+        <div class="box" id="dateBox">📅</div>
+      </div>
+    </div>
+
+    <div class="layout">
+      <section class="content">
+        <form id="demandForm">
+          <div class="card">
+            <div class="grid-2">
+              <div>
+                <div class="section-title">1. Registro do cliente <span class="req">*</span></div>
+                <div class="client-input-wrap">
+                  <span class="client-input-prefix">Nº</span>
+                  <input id="cliente" name="cliente" type="number" min="1" step="1" inputmode="numeric" placeholder="Digite o registro do cliente" required>
+                </div>
+              </div>
+
+              <div>
+                <div class="section-title">2. Técnico do plantão <span class="req">*</span></div>
+                <select id="tecnicoPlantao" required>
+                  <option value="">Selecione o técnico</option>
+                  <option>Osiel</option>
+                  <option>Hercílio</option>
+                  <option>Matheus</option>
+                  <option>Bezerra</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div>
+              <div class="section-title">3. Origem da demanda <span class="req">*</span></div>
+              <div class="origin-grid" id="origens">
+                <label class="radio-line"><input type="radio" name="origem" value="Continuação de atendimento" checked> Continuação de atendimento</label>
+                <label class="radio-line"><input type="radio" name="origem" value="Grupo de WhatsApp"> Grupo de WhatsApp</label>
+                <label class="radio-line"><input type="radio" name="origem" value="Cliente chamou diretamente"> Cliente chamou diretamente</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="card highlight" id="continuacaoCard">
+            <div class="section-title primary">4. Dados da continuação</div>
+            <div class="grid-2">
+              <div>
+                <label>Técnico anterior <span class="req">*</span></label>
+                <input id="tecnicoAnterior" type="text" placeholder="Digite o nome do técnico">
+              </div>
+              <div>
+                <label>Protocolo / chamado anterior</label>
+                <input id="protocolo" type="text" placeholder="Ex.: 2026-12345">
+              </div>
+            </div>
+            <div class="hint">ⓘ Use estes dados para identificar de qual atendimento anterior a demanda veio.</div>
+          </div>
+
+          <div class="card highlight hidden" id="grupoCard">
+            <div class="section-title primary">4. Dados do grupo de WhatsApp</div>
+            <div>
+              <label>Nome do grupo <span class="req">*</span></label>
+              <select id="nomeGrupo">
+                <option value="">Selecione o grupo</option>
+                <option value="Glaçaí">Glaçaí</option>
+                <option value="Maná Comendoria">Maná Comendoria</option>
+                <option value="ldorado">ldorado</option>
+                <option value="TRATT">TRATT</option>
+                <option value="Sonho Doce">Sonho Doce</option>
+                <option value="Miss Make">Miss Make</option>
+                <option value="Famiglia Muccini">Famiglia Muccini</option>
+                <option value="Belém Velho Restaurante">Belém Velho Restaurante</option>
+                <option value="Materiais MDW">Materiais MDW</option>
+                <option value="Marterra">Marterra</option>
+                <option value="Panificadora Prime">Panificadora Prime</option>
+                <option value="Espetinho da Praia">Espetinho da Praia</option>
+                <option value="DLIGHT">DLIGHT</option>
+                <option value="PORTO 60">PORTO 60</option>
+                <option value="JS MOTOS AVELLOZ">JS MOTOS AVELLOZ</option>
+                <option value="Conexfer">Conexfer</option>
+                <option value="Magnum">Magnum</option>
+                <option value="Liderança Motos">Liderança Motos</option>
+                <option value="Personalitte">Personalitte</option>
+                <option value="Farina">Farina</option>
+                <option value="Grao Forneria">Grao Forneria</option>
+                <option value="Hidrauldiesel Truck S">Hidrauldiesel Truck S</option>
+                <option value="Mibra">Mibra</option>
+              </select>
+            </div>
+            <div class="hint">ⓘ Informe o grupo que originou a demanda para permitir análise posterior por cliente ou grupo.</div>
+          </div>
+
+          <div>
+            <div class="card">
+              <div class="section-title">5. Tipo da demanda <span class="req">*</span></div>
+              <select id="tipo" required>
+                <option value="">Selecione o tipo</option>
+                <option>Fiscal</option>
+                <option>PDV / Caixa</option>
+                <option>TEF / Pagamentos</option>
+                <option>Estoque</option>
+                <option>Financeiro</option>
+                <option>Banco de dados</option>
+                <option>Infraestrutura</option>
+                <option>Implantação</option>
+                <option>Outro</option>
+              </select>
+
+              <div style="height:16px"></div>
+
+              <label>É uma demanda recorrente?</label>
+              <div class="radio-wrap">
+                <label class="radio-line"><input type="radio" name="recorrente" value="Não" checked> Não</label>
+                <label class="radio-line"><input type="radio" name="recorrente" value="Sim"> Sim</label>
+              </div>
+            </div>
+          <div class="footer-actions">
+            <button class="btn btn-secondary" type="reset">Cancelar</button>
+            <button class="btn btn-primary" type="submit">💾 Registrar demanda</button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="card summary">
+        <h3>Resumo do registro</h3>
+
+        <div class="summary-item">
+          <div class="summary-icon">C</div>
+          <div>
+            <div class="summary-label">Registro do cliente</div>
+            <div class="summary-value" id="sumCliente">—</div>
+          </div>
+        </div>
+
+        <div class="summary-item">
+          <div class="summary-icon">T</div>
+          <div>
+            <div class="summary-label">Técnico do plantão</div>
+            <div class="summary-value" id="sumTecnicoPlantao">—</div>
+          </div>
+        </div>
+
+        <div class="summary-item">
+          <div class="summary-icon">O</div>
+          <div>
+            <div class="summary-label">Origem</div>
+            <div class="summary-value" id="sumOrigem">Continuação de atendimento</div>
+          </div>
+        </div>
+
+        <div class="summary-item">
+          <div class="summary-icon">D</div>
+          <div>
+            <div class="summary-label">Detalhe da origem</div>
+            <div class="summary-value" id="sumDetalheOrigem">—</div>
+          </div>
+        </div>
+
+        <div class="summary-item">
+          <div class="summary-icon">D</div>
+          <div>
+            <div class="summary-label">Tipo da demanda</div>
+            <div class="summary-value" id="sumTipo">—</div>
+          </div>
+        </div>
+
+        <div class="summary-note">ⓘ O objetivo é registrar rapidamente o que chegou e de onde veio.</div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast">
+  <strong>Atendimento registrado</strong>
+  <span>O protótipo simulou o salvamento com sucesso.</span>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  function selected(name){
+    return document.querySelector(`input[name="${name}"]:checked`)?.value || "";
+  }
+
+  function updateSummary(){
+    $("sumCliente").textContent = $("cliente").value || "—";
+    $("sumTecnicoPlantao").textContent = $("tecnicoPlantao").value || "—";
+    $("sumOrigem").textContent = selected("origem") || "—";
+    $("sumTipo").textContent = $("tipo").value || "—";
+
+    let detalhe = "—";
+    if (selected("origem") === "Continuação de atendimento") {
+      detalhe = $("tecnicoAnterior").value || "Técnico não informado";
+    } else if (selected("origem") === "Grupo de WhatsApp") {
+      detalhe = $("nomeGrupo").value || "Grupo não informado";
+    } else if (selected("origem") === "Cliente chamou diretamente") {
+      detalhe = "Contato direto do cliente";
+    }
+    $("sumDetalheOrigem").textContent = detalhe;
+  }
+
+  function toggleOriginDetails(){
+    const origem = selected("origem");
+    const isContinuation = origem === "Continuação de atendimento";
+    const isGroup = origem === "Grupo de WhatsApp";
+
+    $("continuacaoCard").classList.toggle("hidden", !isContinuation);
+    $("grupoCard").classList.toggle("hidden", !isGroup);
+
+    $("tecnicoAnterior").required = isContinuation;
+    $("nomeGrupo").required = isGroup;
+
+    updateSummary();
+  }
+
+  function setDate(){
+    const now = new Date();
+    const data = now.toLocaleDateString("pt-BR");
+    const hora = now.toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"});
+    $("dateBox").textContent = `📅 ${data}  •  ${hora}`;
+  }
+
+  document.querySelectorAll("input,select,textarea").forEach(el => {
+    el.addEventListener("input", updateSummary);
+    el.addEventListener("change", () => {
+      if(el.name === "origem") toggleOriginDetails();
+      updateSummary();
+    });
+  });
+
+  $("demandForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    if(!$("demandForm").checkValidity()){
+      $("demandForm").reportValidity();
+      return;
+    }
+
+    const origem = selected("origem");
+
+    const payload = {
+      cliente: $("cliente").value,
+      tecnicoPlantao: $("tecnicoPlantao").value,
+      origem,
+      tecnicoAnterior: origem === "Continuação de atendimento" ? $("tecnicoAnterior").value : "",
+      protocolo: origem === "Continuação de atendimento" ? $("protocolo").value : "",
+      nomeGrupo: origem === "Grupo de WhatsApp" ? $("nomeGrupo").value : "",
+      tipo: $("tipo").value,
+      recorrente: selected("recorrente"),
+      recebidoEm: new Date().toISOString()
+    };
+
+    const registros = JSON.parse(localStorage.getItem("softcom-plantao-registros") || "[]");
+    registros.push(payload);
+    localStorage.setItem("softcom-plantao-registros", JSON.stringify(registros));
+
+    console.log("Demanda registrada:", payload);
+
+    $("toast").querySelector("strong").textContent = "Demanda registrada";
+    $("toast").querySelector("span").textContent = "O registro de entrada foi salvo no protótipo.";
+    $("toast").classList.add("show");
+    setTimeout(() => $("toast").classList.remove("show"), 2800);
+  });
+
+  $("demandForm").addEventListener("reset", () => {
+    setTimeout(() => {
+      toggleOriginDetails();
+      updateSummary();
+    }, 0);
+  });
+
+  setDate();
+  toggleOriginDetails();
+  updateSummary();
+</script>
+</body>
+</html>
