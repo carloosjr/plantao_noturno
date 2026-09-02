@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { NightShiftDemand } from '../../shared/domain';
+import type { NightShiftDemand } from '../../shared/domain.js';
 
 /** Linha da tabela plantaonoturno_demandas. */
 export interface DemandaRow {

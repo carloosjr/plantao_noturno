@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { FUNCAO_DASHBOARD, getSupabase } from '../_lib/supabase';
-import { erro, json, paramData } from '../_lib/http';
-import type { DashboardData } from '../../shared/domain';
+import { FUNCAO_DASHBOARD, getSupabase } from '../_lib/supabase.js';
+import { erro, json, paramData } from '../_lib/http.js';
+import type { DashboardData } from '../../shared/domain.js';
 
 /**
  * GET /api/night-shift-demands/dashboard?startDate=&endDate=

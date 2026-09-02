@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabase, TABELA_DEMANDAS } from '../_lib/supabase';
-import { COLUNAS_DEMANDA, erro, json, param, paramData, paraDemanda, type DemandaRow } from '../_lib/http';
-import { ORIGENS, TECNICOS_PLANTAO, TIPOS_DEMANDA, validarDemanda } from '../../shared/domain';
+import { getSupabase, TABELA_DEMANDAS } from '../_lib/supabase.js';
+import { COLUNAS_DEMANDA, erro, json, param, paramData, paraDemanda, type DemandaRow } from '../_lib/http.js';
+import { ORIGENS, TECNICOS_PLANTAO, TIPOS_DEMANDA, validarDemanda } from '../../shared/domain.js';
 
 const LIMITE_PADRAO = 500;
 const LIMITE_MAXIMO = 5000;
