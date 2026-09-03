@@ -40,6 +40,7 @@ export const GRUPOS_WHATSAPP = [
   'Belém Velho Restaurante',
   'Materiais MDW',
   'Marterra',
+  'Panificadora Eldorado',
   'Panificadora Prime',
   'Espetinho da Praia',
   'DLIGHT',
@@ -53,6 +54,7 @@ export const GRUPOS_WHATSAPP = [
   'Grao Forneria',
   'Hidrauldiesel Truck S',
   'Mibra',
+  'Seu Joao - Bar e Restaurante',
 ] as const;
 export type GrupoWhatsapp = (typeof GRUPOS_WHATSAPP)[number];
 
