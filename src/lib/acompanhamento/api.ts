@@ -133,6 +133,7 @@ export async function excluirFila(id: string): Promise<void> {
 
 export async function registrarAgendaIndevida(
   data: string,
+  registro: number,
   responsavel: ResponsavelAgenda,
   oc: string,
   horario: string,
@@ -141,7 +142,7 @@ export async function registrarAgendaIndevida(
   const resposta = await fetch(comData(`${BASE}/agenda`, data), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ responsavel, oc, horario, evidencia }),
+    body: JSON.stringify({ registro, responsavel, oc, horario, evidencia }),
   });
   return tratar(resposta);
 }

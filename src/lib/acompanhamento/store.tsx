@@ -137,7 +137,7 @@ interface AcompanhamentoContextValue {
   excluirFila(id: string): void;
   registrarLigacoes(quantidade: number): void;
   excluirLigacao(id: string): void;
-  registrarAgendaIndevida(responsavel: ResponsavelAgenda, oc: string, horario: string, evidencia: string): void;
+  registrarAgendaIndevida(registro: number, responsavel: ResponsavelAgenda, oc: string, horario: string, evidencia: string): void;
   excluirAgendaIndevida(id: string): void;
   definirResponsavelFechamento(valor: string): void;
   definirObservacoes(valor: string): void;
@@ -234,8 +234,8 @@ export function AcompanhamentoProvider({ children }: { children: ReactNode }) {
         apiExcluirLigacao(id).catch((e) => console.error('Falha ao excluir ligações:', e));
       },
 
-      registrarAgendaIndevida: (responsavel, oc, horario, evidencia) => {
-        apiRegistrarAgendaIndevida(dataTurno, responsavel, oc, horario, evidencia)
+      registrarAgendaIndevida: (registro, responsavel, oc, horario, evidencia) => {
+        apiRegistrarAgendaIndevida(dataTurno, registro, responsavel, oc, horario, evidencia)
           .then((log) => dispatch({ tipo: 'AGENDA_LOG_ADICIONADO', log }))
           .catch((e) => console.error('Falha ao registrar OC indevida:', e));
       },

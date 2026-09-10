@@ -63,6 +63,7 @@ export interface FilaAtendimento {
 export interface AgendaIndevida {
   id: string;
   turnoId: string;
+  registro: number | null;
   responsavel: ResponsavelAgenda;
   oc: string;
   horario: string;

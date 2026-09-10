@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
 /**
  * POST /api/plantao-acompanhamento/agenda?data=YYYY-MM-DD
- * Body: { responsavel, oc, horario, evidencia }
+ * Body: { registro, responsavel, oc, horario, evidencia }
  * Usado pela tela "Validação de agenda".
  */
 async function criar(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -30,7 +30,12 @@ async function criar(req: VercelRequest, res: VercelResponse): Promise<void> {
   const responsavel = corpo.responsavel;
   const oc = typeof corpo.oc === 'string' ? corpo.oc.trim() : '';
   const evidencia = typeof corpo.evidencia === 'string' ? corpo.evidencia.trim() : null;
+  const registroBruto = typeof corpo.registro === 'string' ? corpo.registro.trim() : corpo.registro;
+  const registro = Number(registroBruto);
 
+  if (registroBruto === '' || registroBruto === null || registroBruto === undefined || !Number.isInteger(registro) || registro <= 0) {
+    return erro(res, 400, 'Informe o registro do cliente (somente números).');
+  }
   if (!RESPONSAVEIS_AGENDA.includes(responsavel)) return erro(res, 400, 'responsavel inválido.');
   if (!oc) return erro(res, 400, 'Informe a OC / chamado.');
   if (!horarioValido(corpo.horario)) return erro(res, 400, 'horario inválido (esperado HH:MM).');
@@ -40,7 +45,7 @@ async function criar(req: VercelRequest, res: VercelResponse): Promise<void> {
 
   const { data: row, error } = await supabase
     .from(TABELA_AGENDA_INDEVIDA)
-    .insert({ turno_id: turno.id, responsavel, oc, horario: corpo.horario, evidencia: evidencia || null })
+    .insert({ turno_id: turno.id, registro, responsavel, oc, horario: corpo.horario, evidencia: evidencia || null })
     .select(COLUNAS_AGENDA_INDEVIDA)
     .single<AgendaIndevidaRow>();
 

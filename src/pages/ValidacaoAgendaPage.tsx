@@ -6,14 +6,16 @@ import PageHeader from '../components/PageHeader';
 export default function ValidacaoAgendaPage() {
   const { state, registrarAgendaIndevida, excluirAgendaIndevida } = useAcompanhamento();
 
+  const [registro, setRegistro] = useState('');
   const [responsavel, setResponsavel] = useState<ResponsavelAgenda | ''>('');
   const [oc, setOc] = useState('');
   const [horario, setHorario] = useState('');
   const [evidencia, setEvidencia] = useState('');
 
   function registrar() {
-    if (!responsavel || !oc.trim() || !horario) return;
-    registrarAgendaIndevida(responsavel, oc.trim(), horario, evidencia.trim());
+    if (!registro || !responsavel || !oc.trim() || !horario) return;
+    registrarAgendaIndevida(Number(registro), responsavel, oc.trim(), horario, evidencia.trim());
+    setRegistro('');
     setResponsavel('');
     setOc('');
     setHorario('');
@@ -47,6 +49,20 @@ export default function ValidacaoAgendaPage() {
 
       <div className="log-card">
         <div className="log-form">
+          <div className="client-input-wrap" style={{ flex: '0 0 200px' }}>
+            <span className="client-input-prefix" aria-hidden="true">
+              Nº
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="Registro"
+              aria-label="Registro do cliente"
+              value={registro}
+              onChange={(e) => setRegistro(e.target.value.replace(/\D/g, ''))}
+            />
+          </div>
           <select
             className="log-input log-name"
             aria-label="Atendente"
@@ -96,6 +112,7 @@ export default function ValidacaoAgendaPage() {
               <div className="log-row" key={log.id}>
                 <div className="log-row-main">
                   <span className="log-name">
+                    {log.registro ? `Nº ${log.registro} — ` : ''}
                     {log.responsavel} — {log.oc}
                   </span>
                   <span className="log-time-range">{log.horario}</span>

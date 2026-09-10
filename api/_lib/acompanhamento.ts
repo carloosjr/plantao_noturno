@@ -75,18 +75,20 @@ export function paraFila(row: FilaRow): FilaAtendimento {
 export interface AgendaIndevidaRow {
   id: string;
   turno_id: string;
+  registro: number | string | null;
   responsavel: string;
   oc: string;
   horario: string;
   evidencia: string | null;
 }
 
-export const COLUNAS_AGENDA_INDEVIDA = 'id, turno_id, responsavel, oc, horario, evidencia';
+export const COLUNAS_AGENDA_INDEVIDA = 'id, turno_id, registro, responsavel, oc, horario, evidencia';
 
 export function paraAgendaIndevida(row: AgendaIndevidaRow): AgendaIndevida {
   return {
     id: row.id,
     turnoId: row.turno_id,
+    registro: row.registro === null ? null : Number(row.registro),
     responsavel: row.responsavel as ResponsavelAgenda,
     oc: row.oc,
     horario: row.horario,
