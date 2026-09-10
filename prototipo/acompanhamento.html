@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plantão noturno — acompanhamento diário</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12161a;
+    --panel:#191e23;
+    --panel-alt:#1f252b;
+    --border:#282f36;
+    --text:#e7e9ec;
+    --text-dim:#93a0ab;
+    --text-faint:#5b6670;
+    --accent:#e3a23a;
+    --accent-dim:rgba(227,162,58,0.14);
+    --ok:#3fae83;
+    --ok-dim:rgba(63,174,131,0.14);
+    --danger:#d8574a;
+    --danger-dim:rgba(216,87,74,0.14);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  .app{display:flex;min-height:100vh;}
+
+  .sidebar{
+    width:232px;
+    flex-shrink:0;
+    background:var(--panel);
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    padding:28px 20px;
+  }
+  .brand{margin-bottom:36px;}
+  .brand .name{font-size:15px;font-weight:600;letter-spacing:0.01em;}
+  .brand .sub{font-size:12px;color:var(--text-faint);margin-top:2px;}
+
+  .nav{display:flex;flex-direction:column;gap:2px;}
+  .nav button{
+    all:unset;
+    cursor:pointer;
+    padding:10px 12px;
+    border-radius:6px;
+    font-size:13.5px;
+    color:var(--text-dim);
+    border-left:2px solid transparent;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .nav button:hover{background:var(--panel-alt);color:var(--text);}
+  .nav button.active{
+    color:var(--text);
+    background:var(--panel-alt);
+    border-left:2px solid var(--accent);
+  }
+  .nav .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:0.5;}
+
+  .sidebar-footer{
+    margin-top:auto;
+    padding-top:20px;
+    border-top:1px solid var(--border);
+    font-size:12px;
+    color:var(--text-faint);
+    line-height:1.6;
+  }
+  .sidebar-footer .window{color:var(--text-dim);font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+
+  .main{flex:1;padding:40px 48px;max-width:920px;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  .screen-header{margin-bottom:32px;}
+  .screen-header h1{font-size:19px;font-weight:600;margin:0 0 4px;}
+  .screen-header p{font-size:13.5px;color:var(--text-dim);margin:0;}
+
+  .section-label{
+    font-size:12px;
+    color:var(--text-faint);
+    margin:0 0 14px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+  }
+
+  /* health gauge */
+  .health-card{
+    display:flex;
+    align-items:center;
+    gap:24px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:20px 24px;
+    margin-bottom:32px;
+  }
+  .health-gauge{position:relative;width:104px;height:104px;flex-shrink:0;}
+  .health-gauge svg{width:100%;height:100%;transform:rotate(-90deg);}
+  .health-gauge circle{fill:none;stroke-width:10;}
+  .health-track{stroke:var(--panel-alt);}
+  .health-arc{stroke:var(--ok);stroke-linecap:round;transition:stroke-dashoffset 0.4s ease, stroke 0.4s ease;}
+  .health-center{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+  }
+  .health-value{font-size:24px;font-weight:600;font-family:'IBM Plex Mono',monospace;line-height:1;}
+  .health-pct{font-size:11px;color:var(--text-faint);margin-top:2px;}
+  .health-info{flex:1;}
+  .health-title{font-size:14px;font-weight:500;margin:0 0 4px;}
+  .health-status{font-size:13px;margin:0 0 14px;}
+  .health-status.good{color:var(--ok);}
+  .health-status.warn{color:var(--accent);}
+  .health-status.bad{color:var(--danger);}
+  .health-breakdown{display:flex;flex-direction:column;gap:6px;}
+  .health-breakdown .hb-row{display:flex;justify-content:space-between;max-width:240px;font-size:12.5px;}
+  .health-breakdown .hb-label{color:var(--text-faint);}
+  .health-breakdown .hb-value{font-family:'IBM Plex Mono',monospace;color:var(--text-dim);}
+
+  /* timeline / tasks */
+  .timeline{position:relative;margin-bottom:40px;}
+  .tl-item{
+    position:relative;
+    display:flex;
+    gap:16px;
+    padding-bottom:20px;
+    padding-left:4px;
+  }
+  .tl-item:last-child{padding-bottom:0;}
+  .tl-line{
+    position:absolute;
+    left:8px;
+    top:20px;
+    bottom:-4px;
+    width:1px;
+    background:var(--border);
+  }
+  .tl-item:last-child .tl-line{display:none;}
+  .tl-check{
+    appearance:none;-webkit-appearance:none;
+    width:18px;height:18px;border-radius:5px;
+    flex-shrink:0;margin-top:1px;
+    border:1px solid var(--border);
+    background:var(--panel);
+    cursor:pointer;
+    z-index:1;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .tl-check:hover{border-color:var(--text-dim);}
+  .tl-check:checked{background:var(--ok-dim);border-color:var(--ok);}
+  .tl-check:checked::after{
+    content:'';width:8px;height:5px;
+    border-left:2px solid var(--ok);border-bottom:2px solid var(--ok);
+    transform:rotate(-45deg) translateY(-1px);
+  }
+
+  .tl-check.toggle{
+    width:32px;height:18px;border-radius:99px;
+    position:relative;
+  }
+  .tl-check.toggle::after{
+    content:'';
+    position:absolute;top:1px;left:1px;
+    width:12px;height:12px;border-radius:50%;
+    background:var(--text-faint);
+    border:none;transform:none;
+  }
+  .tl-check.toggle:checked::after{
+    content:'';
+    left:15px;
+    background:var(--ok);
+    border:none;transform:none;
+    width:12px;height:12px;border-radius:50%;
+  }
+
+  .tl-tag{
+    font-size:10px;font-weight:400;color:var(--text-faint);
+    background:var(--panel-alt);padding:1px 7px;border-radius:99px;
+    margin-left:6px;vertical-align:1px;
+    font-family:'IBM Plex Mono',monospace;
+    text-transform:uppercase;letter-spacing:0.04em;
+  }
+
+  .tl-body{flex:1;padding-top:1px;}
+  .tl-time{font-size:12.5px;font-family:'IBM Plex Mono',monospace;color:var(--text-dim);}
+  .tl-title{font-size:14.5px;font-weight:500;margin:2px 0 3px;}
+  .tl-desc{font-size:13px;color:var(--text-dim);}
+  .tl-item.done .tl-title{color:var(--text-dim);text-decoration:line-through;}
+  .tl-item.continuous.done .tl-title{color:var(--ok);text-decoration:none;}
+  .tl-badge{
+    display:inline-block;margin-top:8px;font-size:11.5px;padding:2px 9px;border-radius:4px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .tl-badge.done{background:var(--ok-dim);color:var(--ok);}
+  .tl-badge.pending{background:var(--panel-alt);color:var(--text-faint);}
+
+  /* channel cards */
+  .channels{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  @media (max-width:760px){.channels{grid-template-columns:repeat(2,1fr);}}
+  .channel-card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:16px;
+  }
+  .channel-card .label{font-size:12px;color:var(--text-faint);margin-bottom:8px;}
+  .channel-card .owner{font-size:15px;font-weight:500;margin-bottom:10px;}
+  .pill{display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;font-family:'IBM Plex Mono',monospace;}
+  .pill.ok{background:var(--ok-dim);color:var(--ok);}
+  .pill.wait{background:var(--panel-alt);color:var(--text-faint);border:1px solid var(--border);}
+
+  .ch-time{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+  .ch-time .ch-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .ch-time label{font-size:11px;color:var(--text-faint);}
+  .ch-expected{font-size:11px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;}
+  .ch-real{
+    width:100%;
+    background:var(--panel-alt);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:5px;
+    padding:5px 7px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color-scheme:dark;
+  }
+  .ch-real:focus{outline:none;border-color:var(--text-dim);}
+  .ch-result{display:block;margin-top:6px;font-size:11px;font-family:'IBM Plex Mono',monospace;min-height:14px;}
+  .ch-result.ok{color:var(--ok);}
+  .ch-result.warn{color:var(--accent);}
+
+  /* metrics + productivity */
+  .metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:32px;}
+  @media (max-width:760px){.metrics-grid{grid-template-columns:repeat(2,1fr);}}
+  .metric-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;}
+  .metric-label{font-size:12px;color:var(--text-faint);margin:0 0 8px;}
+  .metric-value{font-size:24px;font-weight:600;font-family:'IBM Plex Mono',monospace;margin:0;}
+
+  .channel-summary{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:4px 18px;margin-bottom:32px;}
+  .channel-summary-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:0.5px solid var(--border);font-size:13px;}
+  .channel-summary-row:last-child{border-bottom:none;}
+  .channel-summary-row .status{font-family:'IBM Plex Mono',monospace;font-size:12px;}
+  .channel-summary-row .status.ok{color:var(--ok);}
+  .channel-summary-row .status.warn{color:var(--accent);}
+  .channel-summary-row .status.wait{color:var(--text-faint);}
+
+  .people-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:32px;}
+  @media (max-width:760px){.people-grid{grid-template-columns:repeat(2,1fr);}}
+  .person-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;}
+  .person-name{font-size:15px;font-weight:500;margin:0 0 2px;}
+  .person-role{font-size:12px;color:var(--text-faint);margin:0 0 12px;}
+  .person-stat{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:7px 0;border-top:0.5px solid var(--border);}
+  .person-stat:first-of-type{border-top:none;}
+  .ps-label{color:var(--text-faint);}
+  .ps-value{font-family:'IBM Plex Mono',monospace;color:var(--text);text-align:right;}
+  .ps-value.ok{color:var(--ok);}
+  .ps-value.warn{color:var(--accent);}
+  .ps-value.wait{color:var(--text-faint);}
+
+  /* closure screen */
+  .closure-meta{display:flex;gap:32px;margin-bottom:24px;flex-wrap:wrap;}
+  .cm-item{display:flex;flex-direction:column;gap:4px;}
+  .cm-label{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.04em;}
+  .cm-value{font-size:14px;font-family:'IBM Plex Mono',monospace;}
+
+  .attention-list{display:flex;flex-direction:column;gap:8px;margin-bottom:32px;}
+  .attention-item{
+    padding:10px 14px;border-radius:6px;font-size:13px;
+    background:var(--panel-alt);border-left:3px solid var(--accent);
+  }
+  .attention-item.danger{border-left-color:var(--danger);}
+  .attention-item.ok{border-left-color:var(--ok);}
+
+  .closure-table{width:100%;border-collapse:collapse;margin-bottom:32px;font-size:13px;}
+  .closure-table th{
+    text-align:left;font-size:11px;color:var(--text-faint);
+    text-transform:uppercase;letter-spacing:0.04em;
+    padding:8px 10px;border-bottom:1px solid var(--border);
+  }
+  .closure-table td{padding:10px;border-bottom:0.5px solid var(--border);font-size:13px;}
+  .closure-table td.status-ok{color:var(--ok);}
+  .closure-table td.status-warn{color:var(--accent);}
+  .closure-table td.status-wait{color:var(--text-faint);}
+
+  textarea.log-input{width:100%;min-height:90px;font-family:'IBM Plex Sans',sans-serif;resize:vertical;}
+
+  .btn{
+    font-family:inherit;
+    font-size:13px;
+    padding:8px 14px;
+    border-radius:6px;
+    border:1px solid var(--border);
+    background:transparent;
+    color:var(--text);
+    cursor:pointer;
+  }
+  .btn:hover{background:var(--panel-alt);}
+
+  /* group + queue logs */
+  .log-card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px 18px;
+    margin-bottom:32px;
+  }
+  .log-form{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .log-input{
+    background:var(--panel-alt);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 10px;
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:13px;
+    color-scheme:dark;
+  }
+  .log-input:focus{outline:none;border-color:var(--text-dim);}
+  .log-input.log-time,.log-input.log-number{width:120px;font-family:'IBM Plex Mono',monospace;}
+  .log-input.log-name{flex:1;min-width:160px;}
+  select.log-input{appearance:none;-webkit-appearance:none;cursor:pointer;flex:0 0 150px;}
+  .call-counter{
+    margin-left:auto;
+    font-size:13px;
+    color:var(--text-dim);
+    font-family:'IBM Plex Mono',monospace;
+    display:flex;align-items:center;
+  }
+  .call-counter #callCount{font-size:16px;font-weight:600;color:var(--text);margin-right:4px;}
+  .btn.sm{padding:6px 10px;font-size:12px;}
+
+  .log-list{display:flex;flex-direction:column;gap:8px;}
+  .log-empty{font-size:13px;color:var(--text-faint);margin:0;}
+  .log-row{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:10px 12px;
+    background:var(--panel-alt);
+    border:1px solid var(--border);
+    border-radius:8px;
+    flex-wrap:wrap;
+  }
+  .log-row-main{display:flex;flex-direction:column;gap:2px;}
+  .log-name{font-size:13.5px;font-weight:500;}
+  .log-time-range{font-size:12px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;}
+  .log-row-actions{display:flex;align-items:center;gap:8px;}
+  .log-status{font-size:11px;padding:2px 9px;border-radius:99px;font-family:'IBM Plex Mono',monospace;}
+  .log-status.open{background:var(--accent-dim);color:var(--accent);}
+  .log-status.closed{background:var(--ok-dim);color:var(--ok);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="name">Plantão noturno</div>
+      <div class="sub">Acompanhamento diário</div>
+    </div>
+    <nav class="nav">
+      <button class="active" data-target="painel"><span class="dot"></span> Acompanhamento</button>
+      <button data-target="produtividade"><span class="dot"></span> Produtividade</button>
+      <button data-target="agendas"><span class="dot"></span> Validação de agenda</button>
+      <button data-target="fechamento"><span class="dot"></span> Fechamento</button>
+    </nav>
+    <div class="sidebar-footer">
+      Janela do plantão<br>
+      <span class="window">19h00 – 22h00</span>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <section id="painel" class="screen active">
+      <div class="screen-header">
+        <h1>Acompanhamento</h1>
+        <p>Marque cada etapa conforme for concluída</p>
+      </div>
+
+      <div class="health-card">
+        <div class="health-gauge">
+          <svg viewBox="0 0 120 120">
+            <circle class="health-track" cx="60" cy="60" r="52"></circle>
+            <circle id="healthArc" class="health-arc" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7"></circle>
+          </svg>
+          <div class="health-center">
+            <span class="health-value" id="healthValue">--</span>
+            <span class="health-pct">%</span>
+          </div>
+        </div>
+        <div class="health-info">
+          <p class="health-title">Saúde do plantão</p>
+          <p class="health-status" id="healthStatus">Calculando...</p>
+          <div class="health-breakdown">
+            <div class="hb-row"><span class="hb-label">Tarefas concluídas</span><span class="hb-value" id="hbTasks">0/5</span></div>
+            <div class="hb-row"><span class="hb-label">Canais em atraso</span><span class="hb-value" id="hbChannels">0/4</span></div>
+          </div>
+        </div>
+      </div>
+
+      <p class="section-label">Tarefas</p>
+      <div class="timeline">
+        <div class="tl-item">
+          <input type="checkbox" class="tl-check" checked>
+          <div class="tl-line"></div>
+          <div class="tl-body">
+            <div class="tl-time">17:00</div>
+            <div class="tl-title">Revisar agenda</div>
+            <div class="tl-desc">Verificar a agenda de Matheus, Bezerra e Osiel e identificar possíveis OCs que possam comprometer o plantão</div>
+            <span class="tl-badge"></span>
+          </div>
+        </div>
+        <div class="tl-item">
+          <input type="checkbox" class="tl-check" checked>
+          <div class="tl-line"></div>
+          <div class="tl-body">
+            <div class="tl-time">17:30</div>
+            <div class="tl-title">Revisar andamento</div>
+            <div class="tl-desc">Verificar o andamento das OCs/agendamentos e identificar o que será concluído e o que pode avançar para o plantão</div>
+            <span class="tl-badge"></span>
+          </div>
+        </div>
+        <div class="tl-item">
+          <input type="checkbox" class="tl-check">
+          <div class="tl-line"></div>
+          <div class="tl-body">
+            <div class="tl-time">18:00</div>
+            <div class="tl-title">Validação do Plantão</div>
+            <div class="tl-desc">Toda continuação deve passar pelo Responsável do Plantão. Decidir se realmente precisa continuar hoje ou se pode ficar para outro dia</div>
+            <span class="tl-badge"></span>
+          </div>
+        </div>
+        <div class="tl-item continuous">
+          <input type="checkbox" class="tl-check toggle">
+          <div class="tl-line"></div>
+          <div class="tl-body">
+            <div class="tl-time">18:00</div>
+            <div class="tl-title">Acompanhar grupos<span class="tl-tag">Contínua</span></div>
+            <div class="tl-desc">Responsável do plantão monitora os grupos de atendimento durante todo o turno</div>
+            <span class="tl-badge"></span>
+          </div>
+        </div>
+        <div class="tl-item continuous">
+          <input type="checkbox" class="tl-check toggle">
+          <div class="tl-line"></div>
+          <div class="tl-body">
+            <div class="tl-time">18:15</div>
+            <div class="tl-title">Acompanhar equipe do Chat no Workdesk<span class="tl-tag">Contínua</span></div>
+            <div class="tl-desc">Responsável do plantão monitora o atendimento do Chat pelo Workdesk durante todo o turno</div>
+            <span class="tl-badge"></span>
+          </div>
+        </div>
+        <div class="tl-item">
+          <input type="checkbox" class="tl-check">
+          <div class="tl-line"></div>
+          <div class="tl-body">
+            <div class="tl-time">18:30</div>
+            <div class="tl-title">Validar agenda da equipe da noite</div>
+            <div class="tl-desc">Conferir os atendimentos já agendados para o turno da noite</div>
+            <span class="tl-badge"></span>
+          </div>
+        </div>
+        <div class="tl-item">
+          <input type="checkbox" class="tl-check">
+          <div class="tl-line"></div>
+          <div class="tl-body">
+            <div class="tl-time">18:00 – 19:00</div>
+            <div class="tl-title">Finalização e apoio</div>
+            <div class="tl-desc">Matheus e Bezerra finalizam seus próprios chamados e as continuações aprovadas. Osiel atua nos Grupos e apoia quando livre</div>
+            <span class="tl-badge"></span>
+          </div>
+        </div>
+        <div class="tl-item">
+          <input type="checkbox" class="tl-check">
+          <div class="tl-line"></div>
+          <div class="tl-body">
+            <div class="tl-time">19:00</div>
+            <div class="tl-title">Validação 2 + início oficial</div>
+            <div class="tl-desc">Continuações da equipe 09–19; papéis travam por canal: Matheus → Linha, Bezerra → Workdesk, Osiel → Grupos</div>
+            <span class="tl-badge"></span>
+          </div>
+        </div>
+        <div class="tl-item">
+          <input type="checkbox" class="tl-check">
+          <div class="tl-line"></div>
+          <div class="tl-body">
+            <div class="tl-time">19:00</div>
+            <div class="tl-title">Validar PitStop</div>
+            <div class="tl-desc">Conferência do PitStop antes do início oficial do plantão</div>
+            <span class="tl-badge"></span>
+          </div>
+        </div>
+        <div class="tl-item">
+          <input type="checkbox" class="tl-check">
+          <div class="tl-body">
+            <div class="tl-time">20:00</div>
+            <div class="tl-title">Ajuste do chat</div>
+            <div class="tl-desc">Otávio e Gilseph saem; canal é herdado pelo Workdesk</div>
+            <span class="tl-badge"></span>
+          </div>
+        </div>
+      </div>
+
+      <p class="section-label">Canais</p>
+      <div class="channels">
+        <div class="channel-card" data-expected="18:00">
+          <div class="label">Grupos</div>
+          <div class="owner">Osiel</div>
+          <span class="pill ok">Ativo</span>
+          <div class="ch-time">
+            <div class="ch-row">
+              <label>Previsto</label>
+              <span class="ch-expected">18:00</span>
+            </div>
+            <input type="time" class="ch-real" aria-label="Horário real — Grupos">
+            <span class="ch-result"></span>
+          </div>
+        </div>
+        <div class="channel-card" data-expected="19:00">
+          <div class="label">Linha</div>
+          <div class="owner">Matheus</div>
+          <span class="pill wait">Aguardando 19h</span>
+          <div class="ch-time">
+            <div class="ch-row">
+              <label>Previsto</label>
+              <span class="ch-expected">19:00</span>
+            </div>
+            <input type="time" class="ch-real" aria-label="Horário real — Linha">
+            <span class="ch-result"></span>
+          </div>
+        </div>
+        <div class="channel-card" data-expected="19:00">
+          <div class="label">Workdesk</div>
+          <div class="owner">Bezerra</div>
+          <span class="pill wait">Aguardando 19h</span>
+          <div class="ch-time">
+            <div class="ch-row">
+              <label>Previsto</label>
+              <span class="ch-expected">19:00</span>
+            </div>
+            <input type="time" class="ch-real" aria-label="Horário real — Workdesk">
+            <span class="ch-result"></span>
+          </div>
+        </div>
+        <div class="channel-card" data-expected="20:00">
+          <div class="label">Chat</div>
+          <div class="owner">Otávio / Gilseph</div>
+          <span class="pill ok">Ativo até 20h</span>
+          <div class="ch-time">
+            <div class="ch-row">
+              <label>Previsto</label>
+              <span class="ch-expected">20:00</span>
+            </div>
+            <input type="time" class="ch-real" aria-label="Horário real — Chat">
+            <span class="ch-result"></span>
+          </div>
+        </div>
+      </div>
+
+      <p class="section-label">Atendimentos em grupos</p>
+      <div class="log-card">
+        <div class="log-form">
+          <input type="text" id="groupNameInput" class="log-input log-name" placeholder="Grupo / cliente">
+          <input type="time" id="groupStartInput" class="log-input log-time" aria-label="Horário de início">
+          <button type="button" class="btn" id="addGroupLog">Registrar início</button>
+        </div>
+        <div id="groupLogList" class="log-list">
+          <p class="log-empty" id="groupLogEmpty">Nenhum atendimento registrado</p>
+        </div>
+      </div>
+
+      <p class="section-label">Filas</p>
+      <div class="log-card">
+        <div class="log-form">
+          <input type="time" id="queueStartInput" class="log-input log-time" aria-label="Horário de início da fila">
+          <input type="number" id="queueCountInput" class="log-input log-number" placeholder="Tickets em fila" min="1">
+          <button type="button" class="btn" id="addQueueLog">Registrar fila</button>
+        </div>
+        <div id="queueLogList" class="log-list">
+          <p class="log-empty" id="queueLogEmpty">Nenhuma fila registrada</p>
+        </div>
+      </div>
+
+      <p class="section-label">Ligações na central</p>
+      <div class="log-card">
+        <div class="log-form">
+          <input type="number" id="callQuantityInput" class="log-input log-number" placeholder="Quantidade" min="1">
+          <button type="button" class="btn" id="addCallLog">Adicionar</button>
+          <span class="call-counter"><span id="callCount">0</span> ligações</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="produtividade" class="screen">
+      <div class="screen-header">
+        <h1>Produtividade</h1>
+        <p>Indicadores de atendimento alimentados pelos registros do plantão</p>
+      </div>
+
+      <p class="section-label">Por atendente</p>
+      <div class="people-grid">
+        <div class="person-card">
+          <p class="person-name">Osiel</p>
+          <p class="person-role">Grupos</p>
+          <div class="person-stat"><span class="ps-label">Status do canal</span><span class="ps-value" id="pOsielStatus">--</span></div>
+          <div class="person-stat"><span class="ps-label">Atendimentos concluídos</span><span class="ps-value" id="pOsielDone">0</span></div>
+          <div class="person-stat"><span class="ps-label">Tempo médio</span><span class="ps-value" id="pOsielAvg">--</span></div>
+          <div class="person-stat"><span class="ps-label">OCs indevidas</span><span class="ps-value" id="pOsielAgenda">0</span></div>
+        </div>
+        <div class="person-card">
+          <p class="person-name">Matheus</p>
+          <p class="person-role">Linha</p>
+          <div class="person-stat"><span class="ps-label">Status do canal</span><span class="ps-value" id="pMatheusStatus">--</span></div>
+          <div class="person-stat"><span class="ps-label">Ligações registradas</span><span class="ps-value" id="pMatheusCalls">0</span></div>
+          <div class="person-stat"><span class="ps-label">OCs indevidas</span><span class="ps-value" id="pMatheusAgenda">0</span></div>
+        </div>
+        <div class="person-card">
+          <p class="person-name">Bezerra</p>
+          <p class="person-role">Workdesk</p>
+          <div class="person-stat"><span class="ps-label">Status do canal</span><span class="ps-value" id="pBezerraStatus">--</span></div>
+        </div>
+        <div class="person-card">
+          <p class="person-name">Hercílio</p>
+          <p class="person-role">Apoio</p>
+          <div class="person-stat"><span class="ps-label">OCs indevidas</span><span class="ps-value" id="pHercilioAgenda">0</span></div>
+        </div>
+      </div>
+
+      <p class="section-label">Operação</p>
+      <div class="metrics-grid" style="grid-template-columns:repeat(2,1fr);">
+        <div class="metric-card">
+          <p class="metric-label">Filas registradas</p>
+          <p class="metric-value" id="mQueueCount">0</p>
+        </div>
+        <div class="metric-card">
+          <p class="metric-label">Tempo médio de fila</p>
+          <p class="metric-value" id="mQueueAvg">--</p>
+        </div>
+      </div>
+
+      <p class="section-label">Histórico de atendimentos em grupos</p>
+      <div id="prodGroupHistory" class="log-list">
+        <p class="log-empty">Nenhum atendimento registrado ainda</p>
+      </div>
+
+      <p class="section-label" style="margin-top:24px;">Histórico de filas</p>
+      <div id="prodQueueHistory" class="log-list">
+        <p class="log-empty">Nenhuma fila registrada ainda</p>
+      </div>
+    </section>
+
+    <section id="agendas" class="screen">
+      <div class="screen-header">
+        <h1>Validação de agenda</h1>
+        <p>OCs que chegaram na agenda de Matheus, Osiel ou Hercílio sem deveriam estar lá</p>
+      </div>
+
+      <div class="log-card">
+        <div class="log-form">
+          <select id="agendaOwnerInput" class="log-input log-name">
+            <option value="" disabled selected>Atendente</option>
+            <option value="Matheus">Matheus</option>
+            <option value="Osiel">Osiel</option>
+            <option value="Hercílio">Hercílio</option>
+          </select>
+          <input type="text" id="agendaOcInput" class="log-input log-name" placeholder="OC / chamado">
+          <input type="time" id="agendaTimeInput" class="log-input log-time" aria-label="Horário em que a OC apareceu">
+          <input type="url" id="agendaEvidenceInput" class="log-input log-name" placeholder="Evidência (link do print)">
+          <button type="button" class="btn" id="addAgendaLog">Registrar</button>
+        </div>
+        <div id="agendaLogList" class="log-list">
+          <p class="log-empty" id="agendaLogEmpty">Nenhuma OC indevida registrada</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="fechamento" class="screen">
+      <div class="screen-header">
+        <h1>Fechamento do plantão</h1>
+        <p>Resumo do turno para revisão no dia seguinte</p>
+      </div>
+
+      <div class="closure-meta">
+        <div class="cm-item">
+          <span class="cm-label">Janela</span>
+          <span class="cm-value">19h00 – 22h00</span>
+        </div>
+        <div class="cm-item">
+          <span class="cm-label">Responsável do plantão</span>
+          <select id="closureLeadInput" class="log-input log-name">
+            <option value="" disabled selected>Selecionar</option>
+            <option value="Matheus">Matheus</option>
+            <option value="Osiel">Osiel</option>
+            <option value="Bezerra">Bezerra</option>
+            <option value="Hercílio">Hercílio</option>
+          </select>
+        </div>
+      </div>
+
+      <p class="section-label">Pontos de atenção</p>
+      <div id="attentionPoints" class="attention-list"></div>
+
+      <div class="health-card">
+        <div class="health-gauge">
+          <svg viewBox="0 0 120 120">
+            <circle class="health-track" cx="60" cy="60" r="52"></circle>
+            <circle id="closureHealthArc" class="health-arc" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7"></circle>
+          </svg>
+          <div class="health-center">
+            <span class="health-value" id="closureHealthValue">--</span>
+            <span class="health-pct">%</span>
+          </div>
+        </div>
+        <div class="health-info">
+          <p class="health-title">Saúde final do plantão</p>
+          <p class="health-status" id="closureHealthStatus">--</p>
+        </div>
+      </div>
+
+      <p class="section-label">Tarefas</p>
+      <div class="log-card">
+        <div class="person-stat" style="border-top:none;">
+          <span class="ps-label">Concluídas</span>
+          <span class="ps-value" id="closureTasksDone">0/0</span>
+        </div>
+        <div id="closurePendingTasks" class="log-list" style="margin-top:10px;"></div>
+      </div>
+
+      <p class="section-label">Canais</p>
+      <table class="closure-table">
+        <thead>
+          <tr><th>Canal</th><th>Previsto</th><th>Real</th><th>Resultado</th></tr>
+        </thead>
+        <tbody id="closureChannelsTable"></tbody>
+      </table>
+
+      <p class="section-label">Atendimentos em grupos</p>
+      <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="metric-card">
+          <p class="metric-label">Concluídos</p>
+          <p class="metric-value" id="closureGroupsDone">0</p>
+        </div>
+        <div class="metric-card">
+          <p class="metric-label">Tempo médio</p>
+          <p class="metric-value" id="closureGroupsAvg">--</p>
+        </div>
+        <div class="metric-card">
+          <p class="metric-label">Mais demorado</p>
+          <p class="metric-value" id="closureGroupsMax">--</p>
+        </div>
+      </div>
+
+      <p class="section-label">Filas</p>
+      <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="metric-card">
+          <p class="metric-label">Total registradas</p>
+          <p class="metric-value" id="closureQueueCount">0</p>
+        </div>
+        <div class="metric-card">
+          <p class="metric-label">Tempo médio até zerar</p>
+          <p class="metric-value" id="closureQueueAvg">--</p>
+        </div>
+        <div class="metric-card">
+          <p class="metric-label">Pico de tickets</p>
+          <p class="metric-value" id="closureQueuePeak">--</p>
+        </div>
+      </div>
+
+      <p class="section-label">Ligações</p>
+      <div class="metrics-grid" style="grid-template-columns:repeat(1,1fr);max-width:220px;">
+        <div class="metric-card">
+          <p class="metric-label">Total na central</p>
+          <p class="metric-value" id="closureCallsTotal">0</p>
+        </div>
+      </div>
+
+      <p class="section-label">OCs indevidas por atendente</p>
+      <div class="log-card">
+        <div id="closureAgendaBreakdown"></div>
+      </div>
+
+      <p class="section-label">Observações</p>
+      <textarea id="closureNotes" class="log-input" placeholder="Registre aqui contexto que os números não capturam..."></textarea>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  var navButtons = document.querySelectorAll('.nav button');
+  var screens = document.querySelectorAll('.screen');
+
+  navButtons.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      navButtons.forEach(function(b){ b.classList.remove('active'); });
+      screens.forEach(function(s){ s.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById(btn.getAttribute('data-target')).classList.add('active');
+    });
+  });
+
+  var groupLogs = [];
+  var groupLogIdCounter = 0;
+  var queueLogs = [];
+  var queueLogIdCounter = 0;
+  var callTotal = 0;
+  var agendaLogs = [];
+
+  var HEALTH_CIRCUMFERENCE = 326.7;
+  var healthArc = document.getElementById('healthArc');
+  var healthValueEl = document.getElementById('healthValue');
+  var healthStatusEl = document.getElementById('healthStatus');
+  var hbTasksEl = document.getElementById('hbTasks');
+  var hbChannelsEl = document.getElementById('hbChannels');
+
+  function getHealthScore(){
+    var checks = document.querySelectorAll('.tl-check');
+    var totalTasks = checks.length;
+    var doneTasks = document.querySelectorAll('.tl-check:checked').length;
+    var taskScore = totalTasks ? (doneTasks / totalTasks) * 100 : 100;
+
+    var cards = document.querySelectorAll('.channel-card');
+    var totalChannels = cards.length;
+    var lateChannels = 0;
+    var channelScoreSum = 0;
+
+    cards.forEach(function(card){
+      var expected = card.getAttribute('data-expected');
+      var input = card.querySelector('.ch-real');
+      var score = 0;
+      if(input.value){
+        var diff = toMinutes(input.value) - toMinutes(expected);
+        if(diff > 0){
+          lateChannels++;
+          score = Math.max(0, 100 - (diff * 5));
+        } else {
+          score = 100;
+        }
+      }
+      channelScoreSum += score;
+    });
+    var channelScore = totalChannels ? channelScoreSum / totalChannels : 100;
+    var overall = Math.round((taskScore * 0.5) + (channelScore * 0.5));
+    var tier = overall >= 80 ? 'good' : (overall >= 50 ? 'warn' : 'bad');
+
+    return {
+      overall: overall,
+      tier: tier,
+      doneTasks: doneTasks,
+      totalTasks: totalTasks,
+      lateChannels: lateChannels,
+      totalChannels: totalChannels
+    };
+  }
+
+  function computeHealth(){
+    var h = getHealthScore();
+
+    var offset = HEALTH_CIRCUMFERENCE * (1 - h.overall / 100);
+    healthArc.setAttribute('stroke-dashoffset', offset);
+    healthValueEl.textContent = h.overall;
+
+    var color = h.tier === 'good' ? 'var(--ok)' : (h.tier === 'warn' ? 'var(--accent)' : 'var(--danger)');
+    healthArc.style.stroke = color;
+    healthStatusEl.className = 'health-status ' + h.tier;
+    healthStatusEl.textContent = h.tier === 'good' ? 'Turno saudável' : (h.tier === 'warn' ? 'Atenção necessária' : 'Turno em risco');
+
+    hbTasksEl.textContent = h.doneTasks + '/' + h.totalTasks;
+    hbChannelsEl.textContent = h.lateChannels + '/' + h.totalChannels;
+  }
+
+  document.querySelectorAll('.tl-check').forEach(function(cb){
+    var item = cb.closest('.tl-item');
+    var badge = item.querySelector('.tl-badge');
+    var isContinuous = item.classList.contains('continuous');
+
+    function sync(){
+      if(cb.checked){
+        item.classList.add('done');
+        badge.textContent = isContinuous ? 'Monitorando' : 'Concluída';
+        badge.className = 'tl-badge done';
+      } else {
+        item.classList.remove('done');
+        badge.textContent = isContinuous ? 'Não iniciado' : 'Pendente';
+        badge.className = 'tl-badge pending';
+      }
+      computeHealth();
+      computeClosure();
+    }
+    cb.addEventListener('change', sync);
+    sync();
+  });
+
+  function toMinutes(hhmm){
+    var parts = hhmm.split(':');
+    return (parseInt(parts[0], 10) * 60) + parseInt(parts[1], 10);
+  }
+
+  document.querySelectorAll('.channel-card').forEach(function(card){
+    var expected = card.getAttribute('data-expected');
+    var input = card.querySelector('.ch-real');
+    var result = card.querySelector('.ch-result');
+
+    input.addEventListener('change', function(){
+      if(!input.value){
+        result.textContent = '';
+        result.className = 'ch-result';
+        computeHealth();
+        computeProductivity();
+        computeClosure();
+        return;
+      }
+      var diff = toMinutes(input.value) - toMinutes(expected);
+      if(diff <= 0){
+        result.textContent = 'No horário';
+        result.className = 'ch-result ok';
+      } else {
+        result.textContent = diff + ' min de atraso';
+        result.className = 'ch-result warn';
+      }
+      computeHealth();
+      computeProductivity();
+      computeClosure();
+    });
+  });
+
+  computeHealth();
+
+  function renderGroupLogs(){
+    var list = document.getElementById('groupLogList');
+    list.innerHTML = '';
+    computeProductivity();
+    computeClosure();
+    if(groupLogs.length === 0){
+      var empty = document.createElement('p');
+      empty.className = 'log-empty';
+      empty.textContent = 'Nenhum atendimento registrado';
+      list.appendChild(empty);
+      return;
+    }
+    groupLogs.slice().reverse().forEach(function(log){
+      var row = document.createElement('div');
+      row.className = 'log-row';
+
+      var main = document.createElement('div');
+      main.className = 'log-row-main';
+      var nameEl = document.createElement('span');
+      nameEl.className = 'log-name';
+      nameEl.textContent = log.name;
+      var rangeEl = document.createElement('span');
+      rangeEl.className = 'log-time-range';
+      rangeEl.textContent = log.start + ' \u2192 ' + (log.end ? log.end : '--:--');
+      main.appendChild(nameEl);
+      main.appendChild(rangeEl);
+      row.appendChild(main);
+
+      if(log.end){
+        var badge = document.createElement('span');
+        badge.className = 'log-status closed';
+        badge.textContent = 'Concluído';
+        row.appendChild(badge);
+      } else {
+        var actions2 = document.createElement('div');
+        actions2.className = 'log-row-actions';
+        var endInput = document.createElement('input');
+        endInput.type = 'time';
+        endInput.className = 'log-input log-time';
+        var finishBtn = document.createElement('button');
+        finishBtn.type = 'button';
+        finishBtn.className = 'btn sm';
+        finishBtn.textContent = 'Registrar fim';
+        finishBtn.addEventListener('click', function(){
+          if(!endInput.value) return;
+          log.end = endInput.value;
+          renderGroupLogs();
+        });
+        actions2.appendChild(endInput);
+        actions2.appendChild(finishBtn);
+        row.appendChild(actions2);
+
+        var openBadge = document.createElement('span');
+        openBadge.className = 'log-status open';
+        openBadge.textContent = 'Em andamento';
+        row.appendChild(openBadge);
+      }
+
+      list.appendChild(row);
+    });
+  }
+
+  document.getElementById('addGroupLog').addEventListener('click', function(){
+    var nameInput = document.getElementById('groupNameInput');
+    var startInput = document.getElementById('groupStartInput');
+    if(!nameInput.value.trim() || !startInput.value) return;
+    groupLogIdCounter++;
+    groupLogs.push({id: groupLogIdCounter, name: nameInput.value.trim(), start: startInput.value, end: null});
+    nameInput.value = '';
+    startInput.value = '';
+    renderGroupLogs();
+  });
+
+  function renderQueueLogs(){
+    var list = document.getElementById('queueLogList');
+    list.innerHTML = '';
+    computeProductivity();
+    computeClosure();
+    if(queueLogs.length === 0){
+      var empty = document.createElement('p');
+      empty.className = 'log-empty';
+      empty.textContent = 'Nenhuma fila registrada';
+      list.appendChild(empty);
+      return;
+    }
+    queueLogs.slice().reverse().forEach(function(log){
+      var row = document.createElement('div');
+      row.className = 'log-row';
+
+      var main = document.createElement('div');
+      main.className = 'log-row-main';
+      var nameEl = document.createElement('span');
+      nameEl.className = 'log-name';
+      nameEl.textContent = log.count + ' ticket(s) em fila';
+      var rangeEl = document.createElement('span');
+      rangeEl.className = 'log-time-range';
+      rangeEl.textContent = log.start + ' \u2192 ' + (log.end ? log.end : '--:--');
+      main.appendChild(nameEl);
+      main.appendChild(rangeEl);
+      row.appendChild(main);
+
+      if(log.end){
+        var badge = document.createElement('span');
+        badge.className = 'log-status closed';
+        badge.textContent = 'Fila zerada';
+        row.appendChild(badge);
+      } else {
+        var actions2 = document.createElement('div');
+        actions2.className = 'log-row-actions';
+        var endInput = document.createElement('input');
+        endInput.type = 'time';
+        endInput.className = 'log-input log-time';
+        var finishBtn = document.createElement('button');
+        finishBtn.type = 'button';
+        finishBtn.className = 'btn sm';
+        finishBtn.textContent = 'Fila zerou';
+        finishBtn.addEventListener('click', function(){
+          if(!endInput.value) return;
+          log.end = endInput.value;
+          renderQueueLogs();
+        });
+        actions2.appendChild(endInput);
+        actions2.appendChild(finishBtn);
+        row.appendChild(actions2);
+
+        var openBadge2 = document.createElement('span');
+        openBadge2.className = 'log-status open';
+        openBadge2.textContent = 'Em fila';
+        row.appendChild(openBadge2);
+      }
+
+      list.appendChild(row);
+    });
+  }
+
+  document.getElementById('addQueueLog').addEventListener('click', function(){
+    var startInput = document.getElementById('queueStartInput');
+    var countInput = document.getElementById('queueCountInput');
+    if(!startInput.value || !countInput.value) return;
+    queueLogIdCounter++;
+    queueLogs.push({id: queueLogIdCounter, start: startInput.value, count: countInput.value, end: null});
+    startInput.value = '';
+    countInput.value = '';
+    renderQueueLogs();
+  });
+
+  function minutesBetween(start, end){
+    return Math.max(0, toMinutes(end) - toMinutes(start));
+  }
+
+  function findChannelCard(labelText){
+    var found = null;
+    document.querySelectorAll('.channel-card').forEach(function(card){
+      if(card.querySelector('.label').textContent === labelText) found = card;
+    });
+    return found;
+  }
+
+  function setChannelStatus(elId, card){
+    var el = document.getElementById(elId);
+    if(!card){ el.textContent = '--'; el.className = 'ps-value'; return; }
+    var expected = card.getAttribute('data-expected');
+    var input = card.querySelector('.ch-real');
+    if(!input.value){
+      el.textContent = 'Aguardando';
+      el.className = 'ps-value wait';
+    } else {
+      var diff = toMinutes(input.value) - toMinutes(expected);
+      if(diff <= 0){
+        el.textContent = 'No horário';
+        el.className = 'ps-value ok';
+      } else {
+        el.textContent = diff + ' min atraso';
+        el.className = 'ps-value warn';
+      }
+    }
+  }
+
+  function computeProductivity(){
+    var doneGroups = groupLogs.filter(function(l){ return l.end; });
+    setChannelStatus('pOsielStatus', findChannelCard('Grupos'));
+    document.getElementById('pOsielDone').textContent = doneGroups.length;
+    if(doneGroups.length){
+      var sum = doneGroups.reduce(function(acc, l){ return acc + minutesBetween(l.start, l.end); }, 0);
+      document.getElementById('pOsielAvg').textContent = Math.round(sum / doneGroups.length) + ' min';
+    } else {
+      document.getElementById('pOsielAvg').textContent = '--';
+    }
+    document.getElementById('pOsielAgenda').textContent = agendaLogs.filter(function(l){ return l.owner === 'Osiel'; }).length;
+
+    setChannelStatus('pMatheusStatus', findChannelCard('Linha'));
+    document.getElementById('pMatheusCalls').textContent = callTotal;
+    document.getElementById('pMatheusAgenda').textContent = agendaLogs.filter(function(l){ return l.owner === 'Matheus'; }).length;
+
+    setChannelStatus('pBezerraStatus', findChannelCard('Workdesk'));
+
+    document.getElementById('pHercilioAgenda').textContent = agendaLogs.filter(function(l){ return l.owner === 'Hercílio'; }).length;
+
+    var doneQueues = queueLogs.filter(function(l){ return l.end; });
+    document.getElementById('mQueueCount').textContent = queueLogs.length;
+    if(doneQueues.length){
+      var qSum = doneQueues.reduce(function(acc, l){ return acc + minutesBetween(l.start, l.end); }, 0);
+      document.getElementById('mQueueAvg').textContent = Math.round(qSum / doneQueues.length) + ' min';
+    } else {
+      document.getElementById('mQueueAvg').textContent = '--';
+    }
+
+    var groupHistory = document.getElementById('prodGroupHistory');
+    groupHistory.innerHTML = '';
+    if(groupLogs.length === 0){
+      var emptyG = document.createElement('p');
+      emptyG.className = 'log-empty';
+      emptyG.textContent = 'Nenhum atendimento registrado ainda';
+      groupHistory.appendChild(emptyG);
+    } else {
+      groupLogs.slice().reverse().forEach(function(log){
+        var row = document.createElement('div');
+        row.className = 'log-row';
+        var main = document.createElement('div');
+        main.className = 'log-row-main';
+        var nameEl = document.createElement('span');
+        nameEl.className = 'log-name';
+        nameEl.textContent = log.name;
+        var rangeEl = document.createElement('span');
+        rangeEl.className = 'log-time-range';
+        rangeEl.textContent = log.start + ' \u2192 ' + (log.end ? log.end : '--:--');
+        main.appendChild(nameEl);
+        main.appendChild(rangeEl);
+        row.appendChild(main);
+        var badge = document.createElement('span');
+        if(log.end){
+          badge.className = 'log-status closed';
+          badge.textContent = minutesBetween(log.start, log.end) + ' min';
+        } else {
+          badge.className = 'log-status open';
+          badge.textContent = 'Em andamento';
+        }
+        row.appendChild(badge);
+        groupHistory.appendChild(row);
+      });
+    }
+
+    var queueHistory = document.getElementById('prodQueueHistory');
+    queueHistory.innerHTML = '';
+    if(queueLogs.length === 0){
+      var emptyQ = document.createElement('p');
+      emptyQ.className = 'log-empty';
+      emptyQ.textContent = 'Nenhuma fila registrada ainda';
+      queueHistory.appendChild(emptyQ);
+    } else {
+      queueLogs.slice().reverse().forEach(function(log){
+        var row = document.createElement('div');
+        row.className = 'log-row';
+        var main = document.createElement('div');
+        main.className = 'log-row-main';
+        var nameEl = document.createElement('span');
+        nameEl.className = 'log-name';
+        nameEl.textContent = log.count + ' ticket(s) em fila';
+        var rangeEl = document.createElement('span');
+        rangeEl.className = 'log-time-range';
+        rangeEl.textContent = log.start + ' \u2192 ' + (log.end ? log.end : '--:--');
+        main.appendChild(nameEl);
+        main.appendChild(rangeEl);
+        row.appendChild(main);
+        var badge = document.createElement('span');
+        if(log.end){
+          badge.className = 'log-status closed';
+          badge.textContent = minutesBetween(log.start, log.end) + ' min';
+        } else {
+          badge.className = 'log-status open';
+          badge.textContent = 'Em fila';
+        }
+        row.appendChild(badge);
+        queueHistory.appendChild(row);
+      });
+    }
+  }
+
+  function updateCallCount(){
+    document.getElementById('callCount').textContent = callTotal;
+    computeClosure();
+    computeProductivity();
+  }
+
+  document.getElementById('addCallLog').addEventListener('click', function(){
+    var quantityInput = document.getElementById('callQuantityInput');
+    var qty = parseInt(quantityInput.value, 10);
+    if(!qty || qty < 1) return;
+    callTotal += qty;
+    quantityInput.value = '';
+    updateCallCount();
+  });
+  updateCallCount();
+
+  function renderAgendaLogs(){
+    var list = document.getElementById('agendaLogList');
+    list.innerHTML = '';
+    computeProductivity();
+    computeClosure();
+    if(agendaLogs.length === 0){
+      var empty = document.createElement('p');
+      empty.className = 'log-empty';
+      empty.textContent = 'Nenhuma OC indevida registrada';
+      list.appendChild(empty);
+      return;
+    }
+    agendaLogs.slice().reverse().forEach(function(log){
+      var row = document.createElement('div');
+      row.className = 'log-row';
+      var main = document.createElement('div');
+      main.className = 'log-row-main';
+      var nameEl = document.createElement('span');
+      nameEl.className = 'log-name';
+      nameEl.textContent = log.owner + ' — ' + log.oc;
+      var rangeEl = document.createElement('span');
+      rangeEl.className = 'log-time-range';
+      rangeEl.textContent = log.time;
+      main.appendChild(nameEl);
+      main.appendChild(rangeEl);
+      row.appendChild(main);
+      if(log.evidence){
+        var evidenceLink = document.createElement('a');
+        evidenceLink.href = log.evidence;
+        evidenceLink.target = '_blank';
+        evidenceLink.rel = 'noopener noreferrer';
+        evidenceLink.className = 'log-status open';
+        evidenceLink.style.textDecoration = 'none';
+        evidenceLink.textContent = 'Evidência';
+        row.appendChild(evidenceLink);
+      }
+      list.appendChild(row);
+    });
+  }
+
+  document.getElementById('addAgendaLog').addEventListener('click', function(){
+    var ownerInput = document.getElementById('agendaOwnerInput');
+    var ocInput = document.getElementById('agendaOcInput');
+    var timeInput = document.getElementById('agendaTimeInput');
+    var evidenceInput = document.getElementById('agendaEvidenceInput');
+    if(!ownerInput.value || !ocInput.value.trim() || !timeInput.value) return;
+    agendaLogs.push({owner: ownerInput.value, oc: ocInput.value.trim(), time: timeInput.value, evidence: evidenceInput.value.trim()});
+    ownerInput.selectedIndex = 0;
+    ocInput.value = '';
+    timeInput.value = '';
+    evidenceInput.value = '';
+    renderAgendaLogs();
+  });
+  renderAgendaLogs();
+
+  computeProductivity();
+
+  var CLOSURE_CIRCUMFERENCE = 326.7;
+
+  function computeClosure(){
+    var h = getHealthScore();
+
+    var arc = document.getElementById('closureHealthArc');
+    var offset = CLOSURE_CIRCUMFERENCE * (1 - h.overall / 100);
+    arc.setAttribute('stroke-dashoffset', offset);
+    var color = h.tier === 'good' ? 'var(--ok)' : (h.tier === 'warn' ? 'var(--accent)' : 'var(--danger)');
+    arc.style.stroke = color;
+    document.getElementById('closureHealthValue').textContent = h.overall;
+    var statusEl = document.getElementById('closureHealthStatus');
+    statusEl.className = 'health-status ' + h.tier;
+    statusEl.textContent = h.tier === 'good' ? 'Turno saudável' : (h.tier === 'warn' ? 'Atenção necessária' : 'Turno em risco');
+
+    document.getElementById('closureTasksDone').textContent = h.doneTasks + '/' + h.totalTasks;
+
+    var pendingList = document.getElementById('closurePendingTasks');
+    pendingList.innerHTML = '';
+    var pendingItems = [];
+    document.querySelectorAll('.tl-item').forEach(function(item){
+      var cb = item.querySelector('.tl-check');
+      if(!cb.checked){
+        pendingItems.push({
+          time: item.querySelector('.tl-time').textContent,
+          title: item.querySelector('.tl-title').childNodes[0].textContent.trim()
+        });
+      }
+    });
+    if(pendingItems.length === 0){
+      var okP = document.createElement('p');
+      okP.className = 'log-empty';
+      okP.textContent = 'Todas as tarefas foram concluídas';
+      pendingList.appendChild(okP);
+    } else {
+      pendingItems.forEach(function(p){
+        var row = document.createElement('div');
+        row.className = 'log-row';
+        var main = document.createElement('div');
+        main.className = 'log-row-main';
+        var nameEl = document.createElement('span');
+        nameEl.className = 'log-name';
+        nameEl.textContent = p.title;
+        var timeEl = document.createElement('span');
+        timeEl.className = 'log-time-range';
+        timeEl.textContent = p.time;
+        main.appendChild(nameEl);
+        main.appendChild(timeEl);
+        row.appendChild(main);
+        pendingList.appendChild(row);
+      });
+    }
+
+    var channelsBody = document.getElementById('closureChannelsTable');
+    channelsBody.innerHTML = '';
+    document.querySelectorAll('.channel-card').forEach(function(card){
+      var name = card.querySelector('.label').textContent;
+      var expected = card.getAttribute('data-expected');
+      var input = card.querySelector('.ch-real');
+      var tr = document.createElement('tr');
+      var tdName = document.createElement('td');
+      tdName.textContent = name;
+      var tdExp = document.createElement('td');
+      tdExp.textContent = expected;
+      tdExp.style.fontFamily = "'IBM Plex Mono',monospace";
+      var tdReal = document.createElement('td');
+      tdReal.style.fontFamily = "'IBM Plex Mono',monospace";
+      var tdStatus = document.createElement('td');
+      if(!input.value){
+        tdReal.textContent = '—';
+        tdStatus.textContent = 'Aguardando';
+        tdStatus.className = 'status-wait';
+      } else {
+        tdReal.textContent = input.value;
+        var diff = toMinutes(input.value) - toMinutes(expected);
+        if(diff <= 0){
+          tdStatus.textContent = 'No horário';
+          tdStatus.className = 'status-ok';
+        } else {
+          tdStatus.textContent = diff + ' min de atraso';
+          tdStatus.className = 'status-warn';
+        }
+      }
+      tr.appendChild(tdName);
+      tr.appendChild(tdExp);
+      tr.appendChild(tdReal);
+      tr.appendChild(tdStatus);
+      channelsBody.appendChild(tr);
+    });
+
+    var doneGroups = groupLogs.filter(function(l){ return l.end; });
+    document.getElementById('closureGroupsDone').textContent = doneGroups.length;
+    if(doneGroups.length){
+      var sum = 0, maxDur = -1;
+      doneGroups.forEach(function(l){
+        var d = minutesBetween(l.start, l.end);
+        sum += d;
+        if(d > maxDur) maxDur = d;
+      });
+      document.getElementById('closureGroupsAvg').textContent = Math.round(sum / doneGroups.length) + ' min';
+      document.getElementById('closureGroupsMax').textContent = maxDur + ' min';
+    } else {
+      document.getElementById('closureGroupsAvg').textContent = '--';
+      document.getElementById('closureGroupsMax').textContent = '--';
+    }
+
+    var doneQueues = queueLogs.filter(function(l){ return l.end; });
+    document.getElementById('closureQueueCount').textContent = queueLogs.length;
+    if(doneQueues.length){
+      var qSum = doneQueues.reduce(function(acc, l){ return acc + minutesBetween(l.start, l.end); }, 0);
+      document.getElementById('closureQueueAvg').textContent = Math.round(qSum / doneQueues.length) + ' min';
+    } else {
+      document.getElementById('closureQueueAvg').textContent = '--';
+    }
+    var peakEl = document.getElementById('closureQueuePeak');
+    if(queueLogs.length){
+      var peak = Math.max.apply(null, queueLogs.map(function(l){ return parseInt(l.count, 10) || 0; }));
+      peakEl.textContent = peak;
+    } else {
+      peakEl.textContent = '--';
+    }
+
+    document.getElementById('closureCallsTotal').textContent = callTotal;
+
+    var agendaBreakdown = document.getElementById('closureAgendaBreakdown');
+    agendaBreakdown.innerHTML = '';
+    var agendaCounts = {};
+    ['Matheus', 'Osiel', 'Hercílio'].forEach(function(name){
+      var count = agendaLogs.filter(function(l){ return l.owner === name; }).length;
+      agendaCounts[name] = count;
+      var row = document.createElement('div');
+      row.className = 'person-stat';
+      var labelEl = document.createElement('span');
+      labelEl.className = 'ps-label';
+      labelEl.textContent = name;
+      var valEl = document.createElement('span');
+      valEl.className = 'ps-value';
+      valEl.textContent = count;
+      row.appendChild(labelEl);
+      row.appendChild(valEl);
+      agendaBreakdown.appendChild(row);
+    });
+
+    var attention = document.getElementById('attentionPoints');
+    attention.innerHTML = '';
+    var points = [];
+
+    document.querySelectorAll('.channel-card').forEach(function(card){
+      var name = card.querySelector('.label').textContent;
+      var expected = card.getAttribute('data-expected');
+      var input = card.querySelector('.ch-real');
+      if(input.value){
+        var diff = toMinutes(input.value) - toMinutes(expected);
+        if(diff > 0) points.push(name + ' atrasou ' + diff + ' min');
+      }
+    });
+    if(pendingItems.length > 0){
+      points.push(pendingItems.length + ' tarefa(s) não concluída(s)');
+    }
+    if(queueLogs.length > 0){
+      points.push(queueLogs.length + ' fila(s) registrada(s), pico de ' + peakEl.textContent + ' tickets');
+    }
+    ['Matheus', 'Osiel', 'Hercílio'].forEach(function(name){
+      if(agendaCounts[name] > 0) points.push(agendaCounts[name] + ' OC(s) indevida(s) na agenda de ' + name);
+    });
+
+    if(points.length === 0){
+      var okDiv = document.createElement('div');
+      okDiv.className = 'attention-item ok';
+      okDiv.textContent = 'Nenhum ponto de atenção — plantão dentro do esperado';
+      attention.appendChild(okDiv);
+    } else {
+      points.forEach(function(text){
+        var div = document.createElement('div');
+        div.className = 'attention-item warn';
+        div.textContent = text;
+        attention.appendChild(div);
+      });
+    }
+    if(h.overall < 50){
+      var dangerDiv = document.createElement('div');
+      dangerDiv.className = 'attention-item danger';
+      dangerDiv.textContent = 'Saúde do plantão terminou em ' + h.overall + '% — turno em risco';
+      attention.insertBefore(dangerDiv, attention.firstChild);
+    }
+  }
+
+  computeClosure();
+</script>
+</body>
+</html>
