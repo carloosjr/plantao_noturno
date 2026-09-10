@@ -4,7 +4,7 @@ import { RESPONSAVEIS_AGENDA, type ResponsavelAgenda } from '../lib/acompanhamen
 import PageHeader from '../components/PageHeader';
 
 export default function ValidacaoAgendaPage() {
-  const { state, registrarAgendaIndevida } = useAcompanhamento();
+  const { state, registrarAgendaIndevida, excluirAgendaIndevida } = useAcompanhamento();
 
   const [responsavel, setResponsavel] = useState<ResponsavelAgenda | ''>('');
   const [oc, setOc] = useState('');
@@ -111,6 +111,14 @@ export default function ValidacaoAgendaPage() {
                     Evidência
                   </a>
                 ) : null}
+                <button
+                  type="button"
+                  className="btn sm log-delete-btn"
+                  onClick={() => excluirAgendaIndevida(log.id)}
+                  aria-label="Excluir registro"
+                >
+                  Excluir
+                </button>
               </div>
             ))}
           </div>

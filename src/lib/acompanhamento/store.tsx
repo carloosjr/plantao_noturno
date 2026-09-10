@@ -5,6 +5,7 @@ import {
   definirCanal as apiDefinirCanal,
   definirFechamento as apiDefinirFechamento,
   definirTarefa as apiDefinirTarefa,
+  excluirAgendaIndevida as apiExcluirAgendaIndevida,
   excluirAtendimentoGrupo as apiExcluirAtendimentoGrupo,
   excluirFila as apiExcluirFila,
   excluirLigacao as apiExcluirLigacao,
@@ -43,6 +44,7 @@ type Acao =
   | { tipo: 'LIGACAO_ADICIONADA'; log: LigacaoLog }
   | { tipo: 'LIGACAO_REMOVIDA'; id: string }
   | { tipo: 'AGENDA_LOG_ADICIONADO'; log: AgendaLog }
+  | { tipo: 'AGENDA_LOG_REMOVIDO'; id: string }
   | { tipo: 'DEFINIR_RESPONSAVEL_FECHAMENTO'; valor: string }
   | { tipo: 'DEFINIR_OBSERVACOES'; valor: string };
 
@@ -109,6 +111,9 @@ function reducer(state: AcompanhamentoState, acao: Acao): AcompanhamentoState {
     case 'AGENDA_LOG_ADICIONADO':
       return { ...state, agendaLogs: [...state.agendaLogs, acao.log] };
 
+    case 'AGENDA_LOG_REMOVIDO':
+      return { ...state, agendaLogs: state.agendaLogs.filter((log) => log.id !== acao.id) };
+
     case 'DEFINIR_RESPONSAVEL_FECHAMENTO':
       return { ...state, closureLead: acao.valor };
 
@@ -133,6 +138,7 @@ interface AcompanhamentoContextValue {
   registrarLigacoes(quantidade: number): void;
   excluirLigacao(id: string): void;
   registrarAgendaIndevida(responsavel: ResponsavelAgenda, oc: string, horario: string, evidencia: string): void;
+  excluirAgendaIndevida(id: string): void;
   definirResponsavelFechamento(valor: string): void;
   definirObservacoes(valor: string): void;
 }
@@ -232,6 +238,11 @@ export function AcompanhamentoProvider({ children }: { children: ReactNode }) {
         apiRegistrarAgendaIndevida(dataTurno, responsavel, oc, horario, evidencia)
           .then((log) => dispatch({ tipo: 'AGENDA_LOG_ADICIONADO', log }))
           .catch((e) => console.error('Falha ao registrar OC indevida:', e));
+      },
+
+      excluirAgendaIndevida: (id) => {
+        dispatch({ tipo: 'AGENDA_LOG_REMOVIDO', id });
+        apiExcluirAgendaIndevida(id).catch((e) => console.error('Falha ao excluir OC indevida:', e));
       },
 
       definirResponsavelFechamento: (valor) => {

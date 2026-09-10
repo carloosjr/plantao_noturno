@@ -145,3 +145,7 @@ export async function registrarAgendaIndevida(
   });
   return tratar(resposta);
 }
+
+export async function excluirAgendaIndevida(id: string): Promise<void> {
+  return excluirPorId(`${BASE}/agenda`, id);
+}
