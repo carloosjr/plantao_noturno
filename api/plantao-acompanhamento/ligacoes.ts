@@ -1,19 +1,22 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { obterTurno } from '../_lib/acompanhamento.js';
+import { COLUNAS_LIGACAO, obterTurno, paraLigacao, type LigacaoRow } from '../_lib/acompanhamento.js';
 import { erro, json, param } from '../_lib/http.js';
-import { FUNCAO_INCREMENTAR_LIGACOES, getSupabase } from '../_lib/supabase.js';
+import { getSupabase, TABELA_LIGACOES } from '../_lib/supabase.js';
 import { dataValida } from '../../shared/acompanhamento.js';
 
-/**
- * POST /api/plantao-acompanhamento/ligacoes?data=YYYY-MM-DD
- * Body: { quantidade }
- */
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+  try {
+    if (req.method === 'POST') return await criar(req, res);
+    if (req.method === 'DELETE') return await excluir(req, res);
+    res.setHeader('Allow', 'POST, DELETE');
     return erro(res, 405, 'Método não permitido.');
+  } catch (e) {
+    return erro(res, 500, e instanceof Error ? e.message : 'Erro inesperado.');
   }
+}
 
+/** POST /api/plantao-acompanhamento/ligacoes?data=YYYY-MM-DD — Body: { quantidade } */
+async function criar(req: VercelRequest, res: VercelResponse): Promise<void> {
   const data = param(req, 'data');
   if (!data || !dataValida(data)) {
     return erro(res, 400, 'Parâmetro "data" inválido (esperado YYYY-MM-DD).');
@@ -26,18 +29,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return erro(res, 400, 'quantidade deve ser um número inteiro positivo.');
   }
 
-  try {
-    const supabase = getSupabase();
-    const turno = await obterTurno(supabase, data);
+  const supabase = getSupabase();
+  const turno = await obterTurno(supabase, data);
 
-    const { data: callTotal, error } = await supabase.rpc(FUNCAO_INCREMENTAR_LIGACOES, {
-      p_turno_id: turno.id,
-      p_quantidade: quantidade,
-    });
+  const { data: row, error } = await supabase
+    .from(TABELA_LIGACOES)
+    .insert({ turno_id: turno.id, quantidade })
+    .select(COLUNAS_LIGACAO)
+    .single<LigacaoRow>();
 
-    if (error) return erro(res, 500, error.message);
-    return json(res, 200, { callTotal });
-  } catch (e) {
-    return erro(res, 500, e instanceof Error ? e.message : 'Erro inesperado.');
-  }
+  if (error || !row) return erro(res, 500, error?.message ?? 'Não foi possível registrar as ligações.');
+  return json(res, 201, paraLigacao(row));
+}
+
+/** DELETE /api/plantao-acompanhamento/ligacoes?id=... */
+async function excluir(req: VercelRequest, res: VercelResponse): Promise<void> {
+  const id = param(req, 'id');
+  if (!id) return erro(res, 400, 'Informe o id do lançamento.');
+
+  const { error } = await getSupabase().from(TABELA_LIGACOES).delete().eq('id', id);
+  if (error) return erro(res, 500, error.message);
+  return json(res, 200, { id });
 }

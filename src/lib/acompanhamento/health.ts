@@ -2,6 +2,7 @@ import { CANAIS, TAREFAS } from './data';
 import type {
   AcompanhamentoState,
   AgendaLog,
+  LigacaoLog,
   QueueLog,
   ResponsavelAgenda,
   ResultadoCanal,
@@ -74,6 +75,10 @@ export function maiorDuracaoMinutos(logs: { inicio: string; fim: string | null }
   const duracoes = logs.map(duracaoMinutos).filter((d): d is number => d !== null);
   if (!duracoes.length) return null;
   return Math.max(...duracoes);
+}
+
+export function totalLigacoes(ligacoes: LigacaoLog[]): number {
+  return ligacoes.reduce((soma, log) => soma + log.quantidade, 0);
 }
 
 export function picoFila(logs: QueueLog[]): number | null {

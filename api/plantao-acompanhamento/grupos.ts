@@ -8,7 +8,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   try {
     if (req.method === 'POST') return await criar(req, res);
     if (req.method === 'PATCH') return await finalizar(req, res);
-    res.setHeader('Allow', 'POST, PATCH');
+    if (req.method === 'DELETE') return await excluir(req, res);
+    res.setHeader('Allow', 'POST, PATCH, DELETE');
     return erro(res, 405, 'Método não permitido.');
   } catch (e) {
     return erro(res, 500, e instanceof Error ? e.message : 'Erro inesperado.');
@@ -58,4 +59,14 @@ async function finalizar(req: VercelRequest, res: VercelResponse): Promise<void>
 
   if (error || !row) return erro(res, 500, error?.message ?? 'Não foi possível encerrar o atendimento.');
   return json(res, 200, paraAtendimentoGrupo(row));
+}
+
+/** DELETE /api/plantao-acompanhamento/grupos?id=... */
+async function excluir(req: VercelRequest, res: VercelResponse): Promise<void> {
+  const id = param(req, 'id');
+  if (!id) return erro(res, 400, 'Informe o id do atendimento.');
+
+  const { error } = await getSupabase().from(TABELA_ATENDIMENTOS_GRUPO).delete().eq('id', id);
+  if (error) return erro(res, 500, error.message);
+  return json(res, 200, { id });
 }

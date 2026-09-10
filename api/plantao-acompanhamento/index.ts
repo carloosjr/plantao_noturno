@@ -3,23 +3,32 @@ import {
   COLUNAS_AGENDA_INDEVIDA,
   COLUNAS_ATENDIMENTO_GRUPO,
   COLUNAS_FILA,
+  COLUNAS_LIGACAO,
   obterTurno,
   paraAgendaIndevida,
   paraAtendimentoGrupo,
   paraFila,
+  paraLigacao,
   paraTurno,
   type AgendaIndevidaRow,
   type AtendimentoGrupoRow,
   type FilaRow,
+  type LigacaoRow,
 } from '../_lib/acompanhamento.js';
 import { erro, json, param } from '../_lib/http.js';
-import { getSupabase, TABELA_AGENDA_INDEVIDA, TABELA_ATENDIMENTOS_GRUPO, TABELA_FILAS } from '../_lib/supabase.js';
+import {
+  getSupabase,
+  TABELA_AGENDA_INDEVIDA,
+  TABELA_ATENDIMENTOS_GRUPO,
+  TABELA_FILAS,
+  TABELA_LIGACOES,
+} from '../_lib/supabase.js';
 import { dataValida, type AcompanhamentoBundle } from '../../shared/acompanhamento.js';
 
 /**
  * GET /api/plantao-acompanhamento?data=YYYY-MM-DD
  * Resolve (ou cria) o turno do dia e devolve tudo que o módulo precisa numa
- * chamada só: turno, atendimentos em grupo, filas e agenda indevida.
+ * chamada só: turno, atendimentos em grupo, filas, ligações e agenda indevida.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method !== 'GET') {
@@ -36,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const supabase = getSupabase();
     const turnoRow = await obterTurno(supabase, data);
 
-    const [grupos, filas, agenda] = await Promise.all([
+    const [grupos, filas, agenda, ligacoes] = await Promise.all([
       supabase
         .from(TABELA_ATENDIMENTOS_GRUPO)
         .select(COLUNAS_ATENDIMENTO_GRUPO)
@@ -52,17 +61,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         .select(COLUNAS_AGENDA_INDEVIDA)
         .eq('turno_id', turnoRow.id)
         .order('created_at', { ascending: true }),
+      supabase
+        .from(TABELA_LIGACOES)
+        .select(COLUNAS_LIGACAO)
+        .eq('turno_id', turnoRow.id)
+        .order('created_at', { ascending: true }),
     ]);
 
     if (grupos.error) return erro(res, 500, grupos.error.message);
     if (filas.error) return erro(res, 500, filas.error.message);
     if (agenda.error) return erro(res, 500, agenda.error.message);
+    if (ligacoes.error) return erro(res, 500, ligacoes.error.message);
 
     const bundle: AcompanhamentoBundle = {
       turno: paraTurno(turnoRow),
       atendimentosGrupo: ((grupos.data ?? []) as AtendimentoGrupoRow[]).map(paraAtendimentoGrupo),
       filas: ((filas.data ?? []) as FilaRow[]).map(paraFila),
       agendaIndevida: ((agenda.data ?? []) as AgendaIndevidaRow[]).map(paraAgendaIndevida),
+      ligacoes: ((ligacoes.data ?? []) as LigacaoRow[]).map(paraLigacao),
     };
 
     return json(res, 200, bundle);

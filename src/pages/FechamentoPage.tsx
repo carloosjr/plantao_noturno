@@ -8,6 +8,7 @@ import {
   pontosDeAtencao,
   resultadoCanal,
   tarefasPendentes,
+  totalLigacoes,
 } from '../lib/acompanhamento/health';
 import { useAcompanhamento } from '../lib/acompanhamento/store';
 import { RESPONSAVEIS_FECHAMENTO } from '../lib/acompanhamento/types';
@@ -173,7 +174,7 @@ export default function FechamentoPage() {
       <div className="metrics" style={{ gridTemplateColumns: 'repeat(1, minmax(0, 1fr))', maxWidth: 220 }}>
         <article className="metric">
           <p className="metric-label">Total na central</p>
-          <p className="metric-value">{state.callTotal}</p>
+          <p className="metric-value">{totalLigacoes(state.ligacoes)}</p>
         </article>
       </div>
 

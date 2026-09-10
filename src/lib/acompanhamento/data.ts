@@ -83,7 +83,7 @@ export function estadoInicialAcompanhamento(): AcompanhamentoState {
     canaisReal: {},
     groupLogs: [],
     queueLogs: [],
-    callTotal: 0,
+    ligacoes: [],
     agendaLogs: [],
     closureLead: '',
     closureNotes: '',

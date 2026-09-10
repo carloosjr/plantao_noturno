@@ -40,7 +40,6 @@ export interface TurnoAcompanhamento {
   data: string;
   tarefasConcluidas: Partial<Record<TarefaId, boolean>>;
   canaisReal: Partial<Record<CanalId, string | null>>;
-  callTotal: number;
   closureLead: string | null;
   closureNotes: string | null;
 }
@@ -70,10 +69,18 @@ export interface AgendaIndevida {
   evidencia: string | null;
 }
 
+export interface Ligacao {
+  id: string;
+  turnoId: string;
+  quantidade: number;
+  criadoEm: string;
+}
+
 /** Resposta de `GET /api/plantao-acompanhamento`. */
 export interface AcompanhamentoBundle {
   turno: TurnoAcompanhamento;
   atendimentosGrupo: AtendimentoGrupo[];
   filas: FilaAtendimento[];
   agendaIndevida: AgendaIndevida[];
+  ligacoes: Ligacao[];
 }

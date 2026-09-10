@@ -14,6 +14,8 @@ interface Props<T extends TimedLogItemBase> {
   /** 'interativo' permite registrar o fim de um item em aberto; 'historico' é somente leitura. */
   modo?: 'interativo' | 'historico';
   onFinalizar?(id: string, fim: string): void;
+  /** Quando informado, mostra um botão para excluir o lançamento. */
+  onExcluir?(id: string): void;
   rotuloFinalizarBotao?: string;
   rotuloAberto?: string;
   rotuloFechado?: string;
@@ -55,6 +57,7 @@ export default function TimedLogList<T extends TimedLogItemBase>({
   renderTitulo,
   modo = 'interativo',
   onFinalizar,
+  onExcluir,
   rotuloFinalizarBotao = 'Registrar fim',
   rotuloAberto = 'Em andamento',
   rotuloFechado = 'Concluído',
@@ -88,6 +91,12 @@ export default function TimedLogList<T extends TimedLogItemBase>({
           ) : (
             <span className="log-status open">{rotuloAberto}</span>
           )}
+
+          {modo === 'interativo' && onExcluir ? (
+            <button type="button" className="btn sm log-delete-btn" onClick={() => onExcluir(item.id)} aria-label="Excluir lançamento">
+              Excluir
+            </button>
+          ) : null}
         </div>
       ))}
     </div>

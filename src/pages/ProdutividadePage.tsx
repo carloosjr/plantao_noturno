@@ -1,5 +1,5 @@
 import { CANAIS } from '../lib/acompanhamento/data';
-import { contarPorResponsavel, mediaMinutos, resultadoCanal } from '../lib/acompanhamento/health';
+import { contarPorResponsavel, mediaMinutos, resultadoCanal, totalLigacoes } from '../lib/acompanhamento/health';
 import { useAcompanhamento } from '../lib/acompanhamento/store';
 import PageHeader from '../components/PageHeader';
 import TimedLogList from '../components/TimedLogList';
@@ -78,7 +78,7 @@ export default function ProdutividadePage() {
           </div>
           <div className="person-stat">
             <span className="ps-label">Ligações registradas</span>
-            <span className="ps-value">{state.callTotal}</span>
+            <span className="ps-value">{totalLigacoes(state.ligacoes)}</span>
           </div>
           <div className="person-stat">
             <span className="ps-label">OCs indevidas</span>

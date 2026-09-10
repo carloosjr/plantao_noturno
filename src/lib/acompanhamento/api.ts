@@ -4,6 +4,7 @@ import type {
   AtendimentoGrupo,
   CanalId,
   FilaAtendimento,
+  Ligacao,
   ResponsavelAgenda,
   TarefaId,
 } from '../../../shared/acompanhamento';
@@ -23,6 +24,11 @@ async function tratar<T>(resposta: Response): Promise<T> {
 
 function comData(caminho: string, data: string): string {
   return `${caminho}?data=${encodeURIComponent(data)}`;
+}
+
+async function excluirPorId(caminho: string, id: string): Promise<void> {
+  const resposta = await fetch(`${caminho}?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+  await tratar(resposta);
 }
 
 export async function carregarAcompanhamento(data: string): Promise<AcompanhamentoBundle> {
@@ -56,13 +62,17 @@ export async function definirCanal(
   return tratar(resposta);
 }
 
-export async function registrarLigacoes(data: string, quantidade: number): Promise<{ callTotal: number }> {
+export async function registrarLigacoes(data: string, quantidade: number): Promise<Ligacao> {
   const resposta = await fetch(comData(`${BASE}/ligacoes`, data), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ quantidade }),
   });
   return tratar(resposta);
+}
+
+export async function excluirLigacao(id: string): Promise<void> {
+  return excluirPorId(`${BASE}/ligacoes`, id);
 }
 
 export async function definirFechamento(
@@ -95,6 +105,10 @@ export async function finalizarAtendimentoGrupo(id: string, fim: string): Promis
   return tratar(resposta);
 }
 
+export async function excluirAtendimentoGrupo(id: string): Promise<void> {
+  return excluirPorId(`${BASE}/grupos`, id);
+}
+
 export async function iniciarFila(data: string, inicio: string, quantidade: number): Promise<FilaAtendimento> {
   const resposta = await fetch(comData(`${BASE}/filas`, data), {
     method: 'POST',
@@ -111,6 +125,10 @@ export async function finalizarFila(id: string, fim: string): Promise<FilaAtendi
     body: JSON.stringify({ id, fim }),
   });
   return tratar(resposta);
+}
+
+export async function excluirFila(id: string): Promise<void> {
+  return excluirPorId(`${BASE}/filas`, id);
 }
 
 export async function registrarAgendaIndevida(

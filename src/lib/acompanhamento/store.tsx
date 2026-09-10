@@ -5,6 +5,9 @@ import {
   definirCanal as apiDefinirCanal,
   definirFechamento as apiDefinirFechamento,
   definirTarefa as apiDefinirTarefa,
+  excluirAtendimentoGrupo as apiExcluirAtendimentoGrupo,
+  excluirFila as apiExcluirFila,
+  excluirLigacao as apiExcluirLigacao,
   finalizarAtendimentoGrupo as apiFinalizarAtendimentoGrupo,
   finalizarFila as apiFinalizarFila,
   iniciarAtendimentoGrupo as apiIniciarAtendimentoGrupo,
@@ -13,7 +16,7 @@ import {
   registrarLigacoes as apiRegistrarLigacoes,
 } from './api';
 import { estadoInicialAcompanhamento } from './data';
-import type { AcompanhamentoState, AgendaLog, GroupLog, QueueLog } from './types';
+import type { AcompanhamentoState, AgendaLog, GroupLog, LigacaoLog, QueueLog } from './types';
 
 const DEBOUNCE_OBSERVACOES_MS = 600;
 
@@ -33,10 +36,12 @@ type Acao =
   | { tipo: 'DEFINIR_HORARIO_CANAL'; id: CanalId; valor: string | null }
   | { tipo: 'GRUPO_LOG_ADICIONADO'; log: GroupLog }
   | { tipo: 'GRUPO_LOG_ATUALIZADO'; log: GroupLog }
+  | { tipo: 'GRUPO_LOG_REMOVIDO'; id: string }
   | { tipo: 'FILA_LOG_ADICIONADO'; log: QueueLog }
   | { tipo: 'FILA_LOG_ATUALIZADO'; log: QueueLog }
-  | { tipo: 'INCREMENTAR_LIGACOES_OTIMISTA'; quantidade: number }
-  | { tipo: 'DEFINIR_CALL_TOTAL'; total: number }
+  | { tipo: 'FILA_LOG_REMOVIDO'; id: string }
+  | { tipo: 'LIGACAO_ADICIONADA'; log: LigacaoLog }
+  | { tipo: 'LIGACAO_REMOVIDA'; id: string }
   | { tipo: 'AGENDA_LOG_ADICIONADO'; log: AgendaLog }
   | { tipo: 'DEFINIR_RESPONSAVEL_FECHAMENTO'; valor: string }
   | { tipo: 'DEFINIR_OBSERVACOES'; valor: string };
@@ -54,11 +59,11 @@ function reducer(state: AcompanhamentoState, acao: Acao): AcompanhamentoState {
         erro: null,
         tarefasConcluidas: acao.bundle.turno.tarefasConcluidas,
         canaisReal: acao.bundle.turno.canaisReal,
-        callTotal: acao.bundle.turno.callTotal,
         closureLead: acao.bundle.turno.closureLead ?? '',
         closureNotes: acao.bundle.turno.closureNotes ?? '',
         groupLogs: acao.bundle.atendimentosGrupo,
         queueLogs: acao.bundle.filas,
+        ligacoes: acao.bundle.ligacoes,
         agendaLogs: acao.bundle.agendaIndevida,
       };
 
@@ -83,17 +88,23 @@ function reducer(state: AcompanhamentoState, acao: Acao): AcompanhamentoState {
     case 'GRUPO_LOG_ATUALIZADO':
       return { ...state, groupLogs: state.groupLogs.map((log) => (log.id === acao.log.id ? acao.log : log)) };
 
+    case 'GRUPO_LOG_REMOVIDO':
+      return { ...state, groupLogs: state.groupLogs.filter((log) => log.id !== acao.id) };
+
     case 'FILA_LOG_ADICIONADO':
       return { ...state, queueLogs: [...state.queueLogs, acao.log] };
 
     case 'FILA_LOG_ATUALIZADO':
       return { ...state, queueLogs: state.queueLogs.map((log) => (log.id === acao.log.id ? acao.log : log)) };
 
-    case 'INCREMENTAR_LIGACOES_OTIMISTA':
-      return { ...state, callTotal: state.callTotal + acao.quantidade };
+    case 'FILA_LOG_REMOVIDO':
+      return { ...state, queueLogs: state.queueLogs.filter((log) => log.id !== acao.id) };
 
-    case 'DEFINIR_CALL_TOTAL':
-      return { ...state, callTotal: acao.total };
+    case 'LIGACAO_ADICIONADA':
+      return { ...state, ligacoes: [...state.ligacoes, acao.log] };
+
+    case 'LIGACAO_REMOVIDA':
+      return { ...state, ligacoes: state.ligacoes.filter((log) => log.id !== acao.id) };
 
     case 'AGENDA_LOG_ADICIONADO':
       return { ...state, agendaLogs: [...state.agendaLogs, acao.log] };
@@ -115,9 +126,12 @@ interface AcompanhamentoContextValue {
   definirHorarioCanal(id: CanalId, valor: string): void;
   iniciarAtendimentoGrupo(nome: string, inicio: string): void;
   finalizarAtendimentoGrupo(id: string, fim: string): void;
+  excluirAtendimentoGrupo(id: string): void;
   iniciarFila(inicio: string, quantidade: number): void;
   finalizarFila(id: string, fim: string): void;
+  excluirFila(id: string): void;
   registrarLigacoes(quantidade: number): void;
+  excluirLigacao(id: string): void;
   registrarAgendaIndevida(responsavel: ResponsavelAgenda, oc: string, horario: string, evidencia: string): void;
   definirResponsavelFechamento(valor: string): void;
   definirObservacoes(valor: string): void;
@@ -181,6 +195,11 @@ export function AcompanhamentoProvider({ children }: { children: ReactNode }) {
           .catch((e) => console.error('Falha ao encerrar atendimento:', e));
       },
 
+      excluirAtendimentoGrupo: (id) => {
+        dispatch({ tipo: 'GRUPO_LOG_REMOVIDO', id });
+        apiExcluirAtendimentoGrupo(id).catch((e) => console.error('Falha ao excluir atendimento:', e));
+      },
+
       iniciarFila: (inicio, quantidade) => {
         apiIniciarFila(dataTurno, inicio, quantidade)
           .then((log) => dispatch({ tipo: 'FILA_LOG_ADICIONADO', log }))
@@ -193,11 +212,20 @@ export function AcompanhamentoProvider({ children }: { children: ReactNode }) {
           .catch((e) => console.error('Falha ao encerrar fila:', e));
       },
 
+      excluirFila: (id) => {
+        dispatch({ tipo: 'FILA_LOG_REMOVIDO', id });
+        apiExcluirFila(id).catch((e) => console.error('Falha ao excluir fila:', e));
+      },
+
       registrarLigacoes: (quantidade) => {
-        dispatch({ tipo: 'INCREMENTAR_LIGACOES_OTIMISTA', quantidade });
         apiRegistrarLigacoes(dataTurno, quantidade)
-          .then(({ callTotal }) => dispatch({ tipo: 'DEFINIR_CALL_TOTAL', total: callTotal }))
+          .then((log) => dispatch({ tipo: 'LIGACAO_ADICIONADA', log }))
           .catch((e) => console.error('Falha ao registrar ligações:', e));
+      },
+
+      excluirLigacao: (id) => {
+        dispatch({ tipo: 'LIGACAO_REMOVIDA', id });
+        apiExcluirLigacao(id).catch((e) => console.error('Falha ao excluir ligações:', e));
       },
 
       registrarAgendaIndevida: (responsavel, oc, horario, evidencia) => {

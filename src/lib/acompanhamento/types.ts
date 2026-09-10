@@ -8,6 +8,7 @@ import type {
   AtendimentoGrupo,
   CanalId,
   FilaAtendimento,
+  Ligacao,
   ResponsavelAgenda,
   TarefaId,
 } from '../../../shared/acompanhamento';
@@ -35,6 +36,7 @@ export interface CanalDef {
 export type GroupLog = AtendimentoGrupo;
 export type QueueLog = FilaAtendimento;
 export type AgendaLog = AgendaIndevida;
+export type LigacaoLog = Ligacao;
 
 export const RESPONSAVEIS_FECHAMENTO = ['Matheus', 'Osiel', 'Bezerra', 'Hercílio'] as const;
 
@@ -46,7 +48,7 @@ export interface AcompanhamentoState {
   canaisReal: Partial<Record<CanalId, string | null>>;
   groupLogs: GroupLog[];
   queueLogs: QueueLog[];
-  callTotal: number;
+  ligacoes: LigacaoLog[];
   agendaLogs: AgendaLog[];
   closureLead: string;
   closureNotes: string;

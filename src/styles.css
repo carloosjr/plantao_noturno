@@ -1387,6 +1387,18 @@ select.log-input {
   font-size: 12px;
 }
 
+.log-delete-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.log-delete-btn:hover {
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.4);
+  background: var(--danger-soft);
+}
+
 .log-list {
   display: flex;
   flex-direction: column;

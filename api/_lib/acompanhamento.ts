@@ -3,6 +3,7 @@ import type {
   AgendaIndevida,
   AtendimentoGrupo,
   FilaAtendimento,
+  Ligacao,
   ResponsavelAgenda,
   TurnoAcompanhamento,
 } from '../../shared/acompanhamento.js';
@@ -14,7 +15,6 @@ export interface TurnoRow {
   data: string;
   tarefas_concluidas: Record<string, boolean> | null;
   canais_real: Record<string, string | null> | null;
-  call_total: number;
   closure_lead: string | null;
   closure_notes: string | null;
 }
@@ -25,7 +25,6 @@ export function paraTurno(row: TurnoRow): TurnoAcompanhamento {
     data: row.data,
     tarefasConcluidas: row.tarefas_concluidas ?? {},
     canaisReal: row.canais_real ?? {},
-    callTotal: row.call_total,
     closureLead: row.closure_lead,
     closureNotes: row.closure_notes,
   };
@@ -40,7 +39,7 @@ export async function obterTurno(supabase: SupabaseClient, data: string): Promis
   return row as TurnoRow;
 }
 
-export const COLUNAS_TURNO = 'id, data, tarefas_concluidas, canais_real, call_total, closure_lead, closure_notes';
+export const COLUNAS_TURNO = 'id, data, tarefas_concluidas, canais_real, closure_lead, closure_notes';
 
 /** Linha de plantaonoturno_atendimentos_grupo. */
 export interface AtendimentoGrupoRow {
@@ -93,4 +92,18 @@ export function paraAgendaIndevida(row: AgendaIndevidaRow): AgendaIndevida {
     horario: row.horario,
     evidencia: row.evidencia,
   };
+}
+
+/** Linha de plantaonoturno_ligacoes. */
+export interface LigacaoRow {
+  id: string;
+  turno_id: string;
+  quantidade: number;
+  created_at: string;
+}
+
+export const COLUNAS_LIGACAO = 'id, turno_id, quantidade, created_at';
+
+export function paraLigacao(row: LigacaoRow): Ligacao {
+  return { id: row.id, turnoId: row.turno_id, quantidade: row.quantidade, criadoEm: row.created_at };
 }

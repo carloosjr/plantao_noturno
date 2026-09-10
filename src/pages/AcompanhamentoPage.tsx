@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { GRUPOS_WHATSAPP } from '../../shared/domain';
 import { CANAIS, TAREFAS } from '../lib/acompanhamento/data';
-import { calcularSaude } from '../lib/acompanhamento/health';
+import { calcularSaude, totalLigacoes } from '../lib/acompanhamento/health';
 import { useAcompanhamento } from '../lib/acompanhamento/store';
 import type { TarefaDef } from '../lib/acompanhamento/types';
+import { formatarHora } from '../lib/format';
 import ChannelCard from '../components/ChannelCard';
 import HealthGauge from '../components/HealthGauge';
 import PageHeader from '../components/PageHeader';
@@ -48,9 +49,12 @@ export default function AcompanhamentoPage() {
     definirHorarioCanal,
     iniciarAtendimentoGrupo,
     finalizarAtendimentoGrupo,
+    excluirAtendimentoGrupo,
     iniciarFila,
     finalizarFila,
+    excluirFila,
     registrarLigacoes,
+    excluirLigacao,
   } = useAcompanhamento();
 
   const saude = calcularSaude(state);
@@ -166,6 +170,7 @@ export default function AcompanhamentoPage() {
           vazioTexto="Nenhum atendimento registrado"
           renderTitulo={(log) => log.nome}
           onFinalizar={finalizarAtendimentoGrupo}
+          onExcluir={excluirAtendimentoGrupo}
         />
       </div>
 
@@ -196,6 +201,7 @@ export default function AcompanhamentoPage() {
           vazioTexto="Nenhuma fila registrada"
           renderTitulo={(log) => `${log.quantidade} ticket(s) em fila`}
           onFinalizar={finalizarFila}
+          onExcluir={excluirFila}
           rotuloFinalizarBotao="Fila zerou"
           rotuloAberto="Em fila"
           rotuloFechado="Fila zerada"
@@ -217,9 +223,32 @@ export default function AcompanhamentoPage() {
             Adicionar
           </button>
           <span className="call-counter">
-            <span>{state.callTotal}</span> ligações
+            <span>{totalLigacoes(state.ligacoes)}</span> ligações
           </span>
         </div>
+
+        {state.ligacoes.length === 0 ? (
+          <p className="log-empty">Nenhuma ligação registrada</p>
+        ) : (
+          <div className="log-list">
+            {[...state.ligacoes].reverse().map((log) => (
+              <div className="log-row" key={log.id}>
+                <div className="log-row-main">
+                  <span className="log-name">{log.quantidade} ligações</span>
+                  <span className="log-time-range">{formatarHora(log.criadoEm)}</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn sm log-delete-btn"
+                  onClick={() => excluirLigacao(log.id)}
+                  aria-label="Excluir lançamento"
+                >
+                  Excluir
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </>
   );
