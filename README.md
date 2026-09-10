@@ -67,8 +67,9 @@ turno cruza a virada de dia em UTC, então quem decide "qual dia" é sempre o cl
   campos do fechamento (`closure_lead`, `closure_notes`).
 - **`plantaonoturno_atendimentos_grupo`**, **`plantaonoturno_filas`** — atendimentos em grupos de
   WhatsApp e filas de tickets registrados durante o turno (`inicio`/`fim` no formato `HH:MM`).
-- **`plantaonoturno_agenda_indevida`** — OCs que chegaram indevidamente na agenda de Matheus, Osiel
-  ou Hercílio (tela "Validação de agenda").
+- **`plantaonoturno_agenda_indevida`** — OCs que chegaram indevidamente na agenda de Matheus, Osiel,
+  Bezerra ou Hercílio (tela "Validação de agenda"), com o registro do cliente (`registro`, nullable
+  — coluna adicionada depois dos primeiros lançamentos).
 - Mesma política das demais tabelas: RLS habilitada, sem policies, só acessível pela API.
 - Updates concorrentes (checklist, canais, contador de ligações) passam por funções SQL
   (`plantaonoturno_definir_tarefa`, `plantaonoturno_definir_canal`,

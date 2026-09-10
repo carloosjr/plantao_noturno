@@ -30,7 +30,7 @@ export default function ValidacaoAgendaPage() {
         <PageHeader
           breadcrumb="Validação de agenda"
           titulo="Validação de agenda"
-          subtitulo="OCs que chegaram na agenda de Matheus, Osiel ou Hercílio sem deveriam estar lá"
+          subtitulo="OCs que chegaram na agenda de Matheus, Osiel, Bezerra ou Hercílio sem deveriam estar lá"
         />
         <div className="state-msg">Carregando o plantão de hoje…</div>
       </>

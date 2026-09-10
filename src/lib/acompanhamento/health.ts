@@ -1,4 +1,5 @@
 import { CANAIS, TAREFAS } from './data';
+import { RESPONSAVEIS_AGENDA } from './types';
 import type {
   AcompanhamentoState,
   AgendaLog,
@@ -102,8 +103,6 @@ export interface PontoDeAtencao {
   tier: 'ok' | 'warn' | 'danger';
 }
 
-const RESPONSAVEIS_AGENDA_ORDEM: ResponsavelAgenda[] = ['Matheus', 'Osiel', 'Hercílio'];
-
 /** Lista de pontos de atenção do Fechamento — lógica portada de `computeClosure()`. */
 export function pontosDeAtencao(state: AcompanhamentoState, saude: SaudePlantao): PontoDeAtencao[] {
   const pontos: PontoDeAtencao[] = [];
@@ -126,7 +125,7 @@ export function pontosDeAtencao(state: AcompanhamentoState, saude: SaudePlantao)
     pontos.push({ texto: `${state.queueLogs.length} fila(s) registrada(s), pico de ${pico} tickets`, tier: 'warn' });
   }
 
-  for (const nome of RESPONSAVEIS_AGENDA_ORDEM) {
+  for (const nome of RESPONSAVEIS_AGENDA) {
     const total = contarPorResponsavel(state.agendaLogs, nome);
     if (total > 0) pontos.push({ texto: `${total} OC(s) indevida(s) na agenda de ${nome}`, tier: 'warn' });
   }

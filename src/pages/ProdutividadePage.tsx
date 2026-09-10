@@ -93,6 +93,10 @@ export default function ProdutividadePage() {
             <span className="ps-label">Status do canal</span>
             <span className={`ps-value ${statusWorkdesk.tier}`}>{statusWorkdesk.texto}</span>
           </div>
+          <div className="person-stat">
+            <span className="ps-label">OCs indevidas</span>
+            <span className="ps-value">{contarPorResponsavel(state.agendaLogs, 'Bezerra')}</span>
+          </div>
         </div>
 
         <div className="person-card">

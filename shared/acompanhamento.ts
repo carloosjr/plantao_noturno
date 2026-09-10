@@ -21,7 +21,7 @@ export type TarefaId = (typeof TAREFA_IDS)[number];
 export const CANAL_IDS = ['grupos', 'linha', 'workdesk', 'chat'] as const;
 export type CanalId = (typeof CANAL_IDS)[number];
 
-export const RESPONSAVEIS_AGENDA = ['Matheus', 'Osiel', 'Hercílio'] as const;
+export const RESPONSAVEIS_AGENDA = ['Matheus', 'Osiel', 'Bezerra', 'Hercílio'] as const;
 export type ResponsavelAgenda = (typeof RESPONSAVEIS_AGENDA)[number];
 
 const HORARIO_REGEX = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;

@@ -11,11 +11,9 @@ import {
   totalLigacoes,
 } from '../lib/acompanhamento/health';
 import { useAcompanhamento } from '../lib/acompanhamento/store';
-import { RESPONSAVEIS_FECHAMENTO } from '../lib/acompanhamento/types';
+import { RESPONSAVEIS_AGENDA, RESPONSAVEIS_FECHAMENTO } from '../lib/acompanhamento/types';
 import HealthGauge from '../components/HealthGauge';
 import PageHeader from '../components/PageHeader';
-
-const RESPONSAVEIS_AGENDA_ORDEM = ['Matheus', 'Osiel', 'Hercílio'] as const;
 
 export default function FechamentoPage() {
   const { state, definirResponsavelFechamento, definirObservacoes } = useAcompanhamento();
@@ -180,7 +178,7 @@ export default function FechamentoPage() {
 
       <p className="section-title">OCs indevidas por atendente</p>
       <div className="log-card">
-        {RESPONSAVEIS_AGENDA_ORDEM.map((nome) => (
+        {RESPONSAVEIS_AGENDA.map((nome) => (
           <div className="person-stat" key={nome}>
             <span className="ps-label">{nome}</span>
             <span className="ps-value">{contarPorResponsavel(state.agendaLogs, nome)}</span>
