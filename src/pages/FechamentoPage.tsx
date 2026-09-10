@@ -14,6 +14,7 @@ import { useAcompanhamento } from '../lib/acompanhamento/store';
 import { RESPONSAVEIS_AGENDA, RESPONSAVEIS_FECHAMENTO } from '../lib/acompanhamento/types';
 import HealthGauge from '../components/HealthGauge';
 import PageHeader from '../components/PageHeader';
+import TurnoDateSelect from '../components/TurnoDateSelect';
 
 export default function FechamentoPage() {
   const { state, definirResponsavelFechamento, definirObservacoes } = useAcompanhamento();
@@ -25,8 +26,9 @@ export default function FechamentoPage() {
           breadcrumb="Fechamento"
           titulo="Fechamento do plantão"
           subtitulo="Resumo do turno para revisão no dia seguinte"
+          acoes={<TurnoDateSelect />}
         />
-        <div className="state-msg">Carregando o plantão de hoje…</div>
+        <div className="state-msg">Carregando o plantão selecionado…</div>
       </>
     );
   }
@@ -46,6 +48,7 @@ export default function FechamentoPage() {
         breadcrumb="Fechamento"
         titulo="Fechamento do plantão"
         subtitulo="Resumo do turno para revisão no dia seguinte"
+        acoes={<TurnoDateSelect />}
       />
 
       {state.erro ? <div className="state-msg error">{state.erro}</div> : null}

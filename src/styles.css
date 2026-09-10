@@ -203,6 +203,18 @@ a {
   white-space: nowrap;
 }
 
+.turno-date-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.turno-date-select input[type='date'] {
+  width: auto;
+  min-width: 150px;
+  color-scheme: dark;
+}
+
 /* ----------------------------------------------------------------- cards */
 
 .card {
@@ -479,6 +491,7 @@ input[type='text'],
 input[type='number'],
 input[type='time'],
 input[type='url'],
+input[type='date'],
 select {
   width: 100%;
   border: 1px solid var(--line);

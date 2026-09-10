@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAcompanhamento } from '../lib/acompanhamento/store';
 import { RESPONSAVEIS_AGENDA, type ResponsavelAgenda } from '../lib/acompanhamento/types';
 import PageHeader from '../components/PageHeader';
+import TurnoDateSelect from '../components/TurnoDateSelect';
 
 export default function ValidacaoAgendaPage() {
   const { state, registrarAgendaIndevida, excluirAgendaIndevida } = useAcompanhamento();
@@ -31,8 +32,9 @@ export default function ValidacaoAgendaPage() {
           breadcrumb="Validação de agenda"
           titulo="Validação de agenda"
           subtitulo="OCs que chegaram na agenda de Matheus, Osiel, Bezerra ou Hercílio sem deveriam estar lá"
+          acoes={<TurnoDateSelect />}
         />
-        <div className="state-msg">Carregando o plantão de hoje…</div>
+        <div className="state-msg">Carregando o plantão selecionado…</div>
       </>
     );
   }
@@ -42,7 +44,8 @@ export default function ValidacaoAgendaPage() {
       <PageHeader
         breadcrumb="Validação de agenda"
         titulo="Validação de agenda"
-        subtitulo="OCs que chegaram na agenda de Matheus, Osiel ou Hercílio sem deveriam estar lá"
+        subtitulo="OCs que chegaram na agenda de Matheus, Osiel, Bezerra ou Hercílio sem deveriam estar lá"
+        acoes={<TurnoDateSelect />}
       />
 
       {state.erro ? <div className="state-msg error">{state.erro}</div> : null}

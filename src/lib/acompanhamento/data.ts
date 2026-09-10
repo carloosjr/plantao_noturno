@@ -73,6 +73,15 @@ export const CANAIS: CanalDef[] = [
   { id: 'chat', nome: 'Chat', responsavel: 'Otávio / Gilseph', previsto: '20:00', statusInicial: 'Ativo até 20h', statusInicialTier: 'ok' },
 ];
 
+/** Data local (YYYY-MM-DD) do dispositivo — usada para resolver/filtrar o turno. */
+export function dataDeHoje(): string {
+  const agora = new Date();
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, '0');
+  const dia = String(agora.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}
+
 /** Estado antes do turno do dia ser carregado do servidor. */
 export function estadoInicialAcompanhamento(): AcompanhamentoState {
   return {

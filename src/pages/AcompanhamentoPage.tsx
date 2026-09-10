@@ -9,6 +9,7 @@ import ChannelCard from '../components/ChannelCard';
 import HealthGauge from '../components/HealthGauge';
 import PageHeader from '../components/PageHeader';
 import TimedLogList from '../components/TimedLogList';
+import TurnoDateSelect from '../components/TurnoDateSelect';
 
 function TimelineItem({ tarefa, concluida, onAlternar }: { tarefa: TarefaDef; concluida: boolean; onAlternar(): void }) {
   const badgeTexto = tarefa.continua
@@ -90,15 +91,25 @@ export default function AcompanhamentoPage() {
   if (state.carregando) {
     return (
       <>
-        <PageHeader breadcrumb="Acompanhamento" titulo="Acompanhamento" subtitulo="Marque cada etapa conforme for concluída" />
-        <div className="state-msg">Carregando o plantão de hoje…</div>
+        <PageHeader
+          breadcrumb="Acompanhamento"
+          titulo="Acompanhamento"
+          subtitulo="Marque cada etapa conforme for concluída"
+          acoes={<TurnoDateSelect />}
+        />
+        <div className="state-msg">Carregando o plantão selecionado…</div>
       </>
     );
   }
 
   return (
     <>
-      <PageHeader breadcrumb="Acompanhamento" titulo="Acompanhamento" subtitulo="Marque cada etapa conforme for concluída" />
+      <PageHeader
+        breadcrumb="Acompanhamento"
+        titulo="Acompanhamento"
+        subtitulo="Marque cada etapa conforme for concluída"
+        acoes={<TurnoDateSelect />}
+      />
 
       {state.erro ? <div className="state-msg error">{state.erro}</div> : null}
 

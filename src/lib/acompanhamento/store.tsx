@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import type { AcompanhamentoBundle, CanalId, ResponsavelAgenda, TarefaId } from '../../../shared/acompanhamento';
 import {
   carregarAcompanhamento,
@@ -16,18 +16,10 @@ import {
   registrarAgendaIndevida as apiRegistrarAgendaIndevida,
   registrarLigacoes as apiRegistrarLigacoes,
 } from './api';
-import { estadoInicialAcompanhamento } from './data';
+import { dataDeHoje, estadoInicialAcompanhamento } from './data';
 import type { AcompanhamentoState, AgendaLog, GroupLog, LigacaoLog, QueueLog } from './types';
 
 const DEBOUNCE_OBSERVACOES_MS = 600;
-
-function dataDeHoje(): string {
-  const agora = new Date();
-  const ano = agora.getFullYear();
-  const mes = String(agora.getMonth() + 1).padStart(2, '0');
-  const dia = String(agora.getDate()).padStart(2, '0');
-  return `${ano}-${mes}-${dia}`;
-}
 
 type Acao =
   | { tipo: 'CARREGANDO' }
@@ -127,6 +119,9 @@ function reducer(state: AcompanhamentoState, acao: Acao): AcompanhamentoState {
 
 interface AcompanhamentoContextValue {
   state: AcompanhamentoState;
+  dataTurno: string;
+  hoje: string;
+  definirData(data: string): void;
   alternarTarefa(id: TarefaId): void;
   definirHorarioCanal(id: CanalId, valor: string): void;
   iniciarAtendimentoGrupo(nome: string, inicio: string): void;
@@ -147,7 +142,8 @@ const AcompanhamentoContext = createContext<AcompanhamentoContextValue | null>(n
 
 export function AcompanhamentoProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, estadoInicialAcompanhamento);
-  const dataTurno = useMemo(dataDeHoje, []);
+  const hoje = useMemo(dataDeHoje, []);
+  const [dataTurno, setDataTurno] = useState(hoje);
   const notasTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -159,7 +155,7 @@ export function AcompanhamentoProvider({ children }: { children: ReactNode }) {
       })
       .catch((e) => {
         if (!cancelado) {
-          dispatch({ tipo: 'ERRO_CARREGAR', mensagem: e instanceof Error ? e.message : 'Não foi possível carregar o plantão de hoje.' });
+          dispatch({ tipo: 'ERRO_CARREGAR', mensagem: e instanceof Error ? e.message : 'Não foi possível carregar o plantão selecionado.' });
         }
       });
     return () => {
@@ -177,6 +173,12 @@ export function AcompanhamentoProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AcompanhamentoContextValue>(
     () => ({
       state,
+      dataTurno,
+      hoje,
+
+      definirData: (data) => {
+        if (data) setDataTurno(data);
+      },
 
       alternarTarefa: (id) => {
         const concluida = !state.tarefasConcluidas[id];
@@ -258,7 +260,7 @@ export function AcompanhamentoProvider({ children }: { children: ReactNode }) {
         }, DEBOUNCE_OBSERVACOES_MS);
       },
     }),
-    [state, dataTurno],
+    [state, dataTurno, hoje],
   );
 
   return <AcompanhamentoContext.Provider value={value}>{children}</AcompanhamentoContext.Provider>;

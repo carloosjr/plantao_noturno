@@ -3,6 +3,7 @@ import { contarPorResponsavel, mediaMinutos, resultadoCanal, totalLigacoes } fro
 import { useAcompanhamento } from '../lib/acompanhamento/store';
 import PageHeader from '../components/PageHeader';
 import TimedLogList from '../components/TimedLogList';
+import TurnoDateSelect from '../components/TurnoDateSelect';
 
 function canalPor(id: (typeof CANAIS)[number]['id']) {
   return CANAIS.find((canal) => canal.id === id)!;
@@ -18,8 +19,9 @@ export default function ProdutividadePage() {
           breadcrumb="Produtividade"
           titulo="Produtividade"
           subtitulo="Indicadores de atendimento alimentados pelos registros do plantão"
+          acoes={<TurnoDateSelect />}
         />
-        <div className="state-msg">Carregando o plantão de hoje…</div>
+        <div className="state-msg">Carregando o plantão selecionado…</div>
       </>
     );
   }
@@ -42,6 +44,7 @@ export default function ProdutividadePage() {
         breadcrumb="Produtividade"
         titulo="Produtividade"
         subtitulo="Indicadores de atendimento alimentados pelos registros do plantão"
+        acoes={<TurnoDateSelect />}
       />
 
       {state.erro ? <div className="state-msg error">{state.erro}</div> : null}
