@@ -1,19 +1,19 @@
 /**
  * Domínio do módulo "Acompanhamento do plantão" — checklist e saúde do turno.
- * Client-side apenas: não é persistido, não passa pela API nem pelo Supabase.
+ * Tipos de apresentação (client-only); os tipos de dado persistido vêm de
+ * `shared/acompanhamento.ts`, compartilhados com a API.
  */
+import type {
+  AgendaIndevida,
+  AtendimentoGrupo,
+  CanalId,
+  FilaAtendimento,
+  ResponsavelAgenda,
+  TarefaId,
+} from '../../../shared/acompanhamento';
 
-export type TarefaId =
-  | 'revisar-agenda'
-  | 'revisar-andamento'
-  | 'validacao-plantao'
-  | 'acompanhar-grupos'
-  | 'acompanhar-chat'
-  | 'validar-agenda-noite'
-  | 'finalizacao-apoio'
-  | 'validacao-2'
-  | 'validar-pitstop'
-  | 'ajuste-chat';
+export type { CanalId, ResponsavelAgenda, TarefaId };
+export { RESPONSAVEIS_AGENDA } from '../../../shared/acompanhamento';
 
 export interface TarefaDef {
   id: TarefaId;
@@ -22,8 +22,6 @@ export interface TarefaDef {
   descricao: string;
   continua?: boolean;
 }
-
-export type CanalId = 'grupos' | 'linha' | 'workdesk' | 'chat';
 
 export interface CanalDef {
   id: CanalId;
@@ -34,36 +32,18 @@ export interface CanalDef {
   statusInicialTier: 'ok' | 'wait';
 }
 
-export interface GroupLog {
-  id: number;
-  nome: string;
-  inicio: string;
-  fim: string | null;
-}
-
-export interface QueueLog {
-  id: number;
-  inicio: string;
-  quantidade: number;
-  fim: string | null;
-}
-
-export const RESPONSAVEIS_AGENDA = ['Matheus', 'Osiel', 'Hercílio'] as const;
-export type ResponsavelAgenda = (typeof RESPONSAVEIS_AGENDA)[number];
-
-export interface AgendaLog {
-  id: number;
-  responsavel: ResponsavelAgenda;
-  oc: string;
-  horario: string;
-  evidencia: string;
-}
+export type GroupLog = AtendimentoGrupo;
+export type QueueLog = FilaAtendimento;
+export type AgendaLog = AgendaIndevida;
 
 export const RESPONSAVEIS_FECHAMENTO = ['Matheus', 'Osiel', 'Bezerra', 'Hercílio'] as const;
 
 export interface AcompanhamentoState {
-  tarefasConcluidas: Record<TarefaId, boolean>;
-  canaisReal: Record<CanalId, string | null>;
+  turnoId: string | null;
+  carregando: boolean;
+  erro: string | null;
+  tarefasConcluidas: Partial<Record<TarefaId, boolean>>;
+  canaisReal: Partial<Record<CanalId, string | null>>;
   groupLogs: GroupLog[];
   queueLogs: QueueLog[];
   callTotal: number;

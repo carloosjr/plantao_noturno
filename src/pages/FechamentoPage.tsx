@@ -19,6 +19,19 @@ const RESPONSAVEIS_AGENDA_ORDEM = ['Matheus', 'Osiel', 'Hercílio'] as const;
 export default function FechamentoPage() {
   const { state, definirResponsavelFechamento, definirObservacoes } = useAcompanhamento();
 
+  if (state.carregando) {
+    return (
+      <>
+        <PageHeader
+          breadcrumb="Fechamento"
+          titulo="Fechamento do plantão"
+          subtitulo="Resumo do turno para revisão no dia seguinte"
+        />
+        <div className="state-msg">Carregando o plantão de hoje…</div>
+      </>
+    );
+  }
+
   const saude = calcularSaude(state);
   const pontos = pontosDeAtencao(state, saude);
   const pendentes = tarefasPendentes(state);
@@ -35,6 +48,8 @@ export default function FechamentoPage() {
         titulo="Fechamento do plantão"
         subtitulo="Resumo do turno para revisão no dia seguinte"
       />
+
+      {state.erro ? <div className="state-msg error">{state.erro}</div> : null}
 
       <div className="closure-meta">
         <div className="cm-item">
@@ -108,7 +123,7 @@ export default function FechamentoPage() {
         </thead>
         <tbody>
           {CANAIS.map((canal) => {
-            const real = state.canaisReal[canal.id];
+            const real = state.canaisReal[canal.id] ?? null;
             const resultado = resultadoCanal(real, canal.previsto);
             return (
               <tr key={canal.id}>

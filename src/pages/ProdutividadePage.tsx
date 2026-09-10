@@ -11,13 +11,26 @@ function canalPor(id: (typeof CANAIS)[number]['id']) {
 export default function ProdutividadePage() {
   const { state } = useAcompanhamento();
 
+  if (state.carregando) {
+    return (
+      <>
+        <PageHeader
+          breadcrumb="Produtividade"
+          titulo="Produtividade"
+          subtitulo="Indicadores de atendimento alimentados pelos registros do plantão"
+        />
+        <div className="state-msg">Carregando o plantão de hoje…</div>
+      </>
+    );
+  }
+
   const canalGrupos = canalPor('grupos');
   const canalLinha = canalPor('linha');
   const canalWorkdesk = canalPor('workdesk');
 
-  const statusGrupos = resultadoCanal(state.canaisReal.grupos, canalGrupos.previsto);
-  const statusLinha = resultadoCanal(state.canaisReal.linha, canalLinha.previsto);
-  const statusWorkdesk = resultadoCanal(state.canaisReal.workdesk, canalWorkdesk.previsto);
+  const statusGrupos = resultadoCanal(state.canaisReal.grupos ?? null, canalGrupos.previsto);
+  const statusLinha = resultadoCanal(state.canaisReal.linha ?? null, canalLinha.previsto);
+  const statusWorkdesk = resultadoCanal(state.canaisReal.workdesk ?? null, canalWorkdesk.previsto);
 
   const gruposConcluidos = state.groupLogs.filter((log) => log.fim);
   const mediaGrupos = mediaMinutos(state.groupLogs);
@@ -30,6 +43,8 @@ export default function ProdutividadePage() {
         titulo="Produtividade"
         subtitulo="Indicadores de atendimento alimentados pelos registros do plantão"
       />
+
+      {state.erro ? <div className="state-msg error">{state.erro}</div> : null}
 
       <p className="section-title">Por atendente</p>
       <div className="people-grid">

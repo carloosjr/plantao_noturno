@@ -1,25 +1,70 @@
-import { createContext, useContext, useMemo, useReducer, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
+import type { AcompanhamentoBundle, CanalId, ResponsavelAgenda, TarefaId } from '../../../shared/acompanhamento';
+import {
+  carregarAcompanhamento,
+  definirCanal as apiDefinirCanal,
+  definirFechamento as apiDefinirFechamento,
+  definirTarefa as apiDefinirTarefa,
+  finalizarAtendimentoGrupo as apiFinalizarAtendimentoGrupo,
+  finalizarFila as apiFinalizarFila,
+  iniciarAtendimentoGrupo as apiIniciarAtendimentoGrupo,
+  iniciarFila as apiIniciarFila,
+  registrarAgendaIndevida as apiRegistrarAgendaIndevida,
+  registrarLigacoes as apiRegistrarLigacoes,
+} from './api';
 import { estadoInicialAcompanhamento } from './data';
-import type { AcompanhamentoState, AgendaLog, CanalId, GroupLog, QueueLog, ResponsavelAgenda, TarefaId } from './types';
+import type { AcompanhamentoState, AgendaLog, GroupLog, QueueLog } from './types';
+
+const DEBOUNCE_OBSERVACOES_MS = 600;
+
+function dataDeHoje(): string {
+  const agora = new Date();
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, '0');
+  const dia = String(agora.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}
 
 type Acao =
+  | { tipo: 'CARREGANDO' }
+  | { tipo: 'BUNDLE_CARREGADO'; bundle: AcompanhamentoBundle }
+  | { tipo: 'ERRO_CARREGAR'; mensagem: string }
   | { tipo: 'ALTERNAR_TAREFA'; id: TarefaId }
-  | { tipo: 'DEFINIR_HORARIO_CANAL'; id: CanalId; valor: string }
-  | { tipo: 'INICIAR_ATENDIMENTO_GRUPO'; nome: string; inicio: string }
-  | { tipo: 'FINALIZAR_ATENDIMENTO_GRUPO'; id: number; fim: string }
-  | { tipo: 'INICIAR_FILA'; inicio: string; quantidade: number }
-  | { tipo: 'FINALIZAR_FILA'; id: number; fim: string }
-  | { tipo: 'REGISTRAR_LIGACOES'; quantidade: number }
-  | { tipo: 'REGISTRAR_AGENDA_INDEVIDA'; responsavel: ResponsavelAgenda; oc: string; horario: string; evidencia: string }
+  | { tipo: 'DEFINIR_HORARIO_CANAL'; id: CanalId; valor: string | null }
+  | { tipo: 'GRUPO_LOG_ADICIONADO'; log: GroupLog }
+  | { tipo: 'GRUPO_LOG_ATUALIZADO'; log: GroupLog }
+  | { tipo: 'FILA_LOG_ADICIONADO'; log: QueueLog }
+  | { tipo: 'FILA_LOG_ATUALIZADO'; log: QueueLog }
+  | { tipo: 'INCREMENTAR_LIGACOES_OTIMISTA'; quantidade: number }
+  | { tipo: 'DEFINIR_CALL_TOTAL'; total: number }
+  | { tipo: 'AGENDA_LOG_ADICIONADO'; log: AgendaLog }
   | { tipo: 'DEFINIR_RESPONSAVEL_FECHAMENTO'; valor: string }
   | { tipo: 'DEFINIR_OBSERVACOES'; valor: string };
 
-function proximoId(itens: { id: number }[]): number {
-  return itens.reduce((maior, item) => Math.max(maior, item.id), 0) + 1;
-}
-
 function reducer(state: AcompanhamentoState, acao: Acao): AcompanhamentoState {
   switch (acao.tipo) {
+    case 'CARREGANDO':
+      return { ...state, carregando: true, erro: null };
+
+    case 'BUNDLE_CARREGADO':
+      return {
+        ...state,
+        turnoId: acao.bundle.turno.id,
+        carregando: false,
+        erro: null,
+        tarefasConcluidas: acao.bundle.turno.tarefasConcluidas,
+        canaisReal: acao.bundle.turno.canaisReal,
+        callTotal: acao.bundle.turno.callTotal,
+        closureLead: acao.bundle.turno.closureLead ?? '',
+        closureNotes: acao.bundle.turno.closureNotes ?? '',
+        groupLogs: acao.bundle.atendimentosGrupo,
+        queueLogs: acao.bundle.filas,
+        agendaLogs: acao.bundle.agendaIndevida,
+      };
+
+    case 'ERRO_CARREGAR':
+      return { ...state, carregando: false, erro: acao.mensagem };
+
     case 'ALTERNAR_TAREFA':
       return {
         ...state,
@@ -29,44 +74,29 @@ function reducer(state: AcompanhamentoState, acao: Acao): AcompanhamentoState {
     case 'DEFINIR_HORARIO_CANAL':
       return {
         ...state,
-        canaisReal: { ...state.canaisReal, [acao.id]: acao.valor || null },
+        canaisReal: { ...state.canaisReal, [acao.id]: acao.valor },
       };
 
-    case 'INICIAR_ATENDIMENTO_GRUPO': {
-      const log: GroupLog = { id: proximoId(state.groupLogs), nome: acao.nome, inicio: acao.inicio, fim: null };
-      return { ...state, groupLogs: [...state.groupLogs, log] };
-    }
+    case 'GRUPO_LOG_ADICIONADO':
+      return { ...state, groupLogs: [...state.groupLogs, acao.log] };
 
-    case 'FINALIZAR_ATENDIMENTO_GRUPO':
-      return {
-        ...state,
-        groupLogs: state.groupLogs.map((log) => (log.id === acao.id ? { ...log, fim: acao.fim } : log)),
-      };
+    case 'GRUPO_LOG_ATUALIZADO':
+      return { ...state, groupLogs: state.groupLogs.map((log) => (log.id === acao.log.id ? acao.log : log)) };
 
-    case 'INICIAR_FILA': {
-      const log: QueueLog = { id: proximoId(state.queueLogs), inicio: acao.inicio, quantidade: acao.quantidade, fim: null };
-      return { ...state, queueLogs: [...state.queueLogs, log] };
-    }
+    case 'FILA_LOG_ADICIONADO':
+      return { ...state, queueLogs: [...state.queueLogs, acao.log] };
 
-    case 'FINALIZAR_FILA':
-      return {
-        ...state,
-        queueLogs: state.queueLogs.map((log) => (log.id === acao.id ? { ...log, fim: acao.fim } : log)),
-      };
+    case 'FILA_LOG_ATUALIZADO':
+      return { ...state, queueLogs: state.queueLogs.map((log) => (log.id === acao.log.id ? acao.log : log)) };
 
-    case 'REGISTRAR_LIGACOES':
+    case 'INCREMENTAR_LIGACOES_OTIMISTA':
       return { ...state, callTotal: state.callTotal + acao.quantidade };
 
-    case 'REGISTRAR_AGENDA_INDEVIDA': {
-      const log: AgendaLog = {
-        id: proximoId(state.agendaLogs),
-        responsavel: acao.responsavel,
-        oc: acao.oc,
-        horario: acao.horario,
-        evidencia: acao.evidencia,
-      };
-      return { ...state, agendaLogs: [...state.agendaLogs, log] };
-    }
+    case 'DEFINIR_CALL_TOTAL':
+      return { ...state, callTotal: acao.total };
+
+    case 'AGENDA_LOG_ADICIONADO':
+      return { ...state, agendaLogs: [...state.agendaLogs, acao.log] };
 
     case 'DEFINIR_RESPONSAVEL_FECHAMENTO':
       return { ...state, closureLead: acao.valor };
@@ -84,9 +114,9 @@ interface AcompanhamentoContextValue {
   alternarTarefa(id: TarefaId): void;
   definirHorarioCanal(id: CanalId, valor: string): void;
   iniciarAtendimentoGrupo(nome: string, inicio: string): void;
-  finalizarAtendimentoGrupo(id: number, fim: string): void;
+  finalizarAtendimentoGrupo(id: string, fim: string): void;
   iniciarFila(inicio: string, quantidade: number): void;
-  finalizarFila(id: number, fim: string): void;
+  finalizarFila(id: string, fim: string): void;
   registrarLigacoes(quantidade: number): void;
   registrarAgendaIndevida(responsavel: ResponsavelAgenda, oc: string, horario: string, evidencia: string): void;
   definirResponsavelFechamento(valor: string): void;
@@ -97,23 +127,99 @@ const AcompanhamentoContext = createContext<AcompanhamentoContextValue | null>(n
 
 export function AcompanhamentoProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, estadoInicialAcompanhamento);
+  const dataTurno = useMemo(dataDeHoje, []);
+  const notasTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    dispatch({ tipo: 'CARREGANDO' });
+    carregarAcompanhamento(dataTurno)
+      .then((bundle) => {
+        if (!cancelado) dispatch({ tipo: 'BUNDLE_CARREGADO', bundle });
+      })
+      .catch((e) => {
+        if (!cancelado) {
+          dispatch({ tipo: 'ERRO_CARREGAR', mensagem: e instanceof Error ? e.message : 'Não foi possível carregar o plantão de hoje.' });
+        }
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [dataTurno]);
+
+  useEffect(
+    () => () => {
+      if (notasTimeout.current) clearTimeout(notasTimeout.current);
+    },
+    [],
+  );
 
   const value = useMemo<AcompanhamentoContextValue>(
     () => ({
       state,
-      alternarTarefa: (id) => dispatch({ tipo: 'ALTERNAR_TAREFA', id }),
-      definirHorarioCanal: (id, valor) => dispatch({ tipo: 'DEFINIR_HORARIO_CANAL', id, valor }),
-      iniciarAtendimentoGrupo: (nome, inicio) => dispatch({ tipo: 'INICIAR_ATENDIMENTO_GRUPO', nome, inicio }),
-      finalizarAtendimentoGrupo: (id, fim) => dispatch({ tipo: 'FINALIZAR_ATENDIMENTO_GRUPO', id, fim }),
-      iniciarFila: (inicio, quantidade) => dispatch({ tipo: 'INICIAR_FILA', inicio, quantidade }),
-      finalizarFila: (id, fim) => dispatch({ tipo: 'FINALIZAR_FILA', id, fim }),
-      registrarLigacoes: (quantidade) => dispatch({ tipo: 'REGISTRAR_LIGACOES', quantidade }),
-      registrarAgendaIndevida: (responsavel, oc, horario, evidencia) =>
-        dispatch({ tipo: 'REGISTRAR_AGENDA_INDEVIDA', responsavel, oc, horario, evidencia }),
-      definirResponsavelFechamento: (valor) => dispatch({ tipo: 'DEFINIR_RESPONSAVEL_FECHAMENTO', valor }),
-      definirObservacoes: (valor) => dispatch({ tipo: 'DEFINIR_OBSERVACOES', valor }),
+
+      alternarTarefa: (id) => {
+        const concluida = !state.tarefasConcluidas[id];
+        dispatch({ tipo: 'ALTERNAR_TAREFA', id });
+        apiDefinirTarefa(dataTurno, id, concluida).catch((e) => console.error('Falha ao salvar tarefa:', e));
+      },
+
+      definirHorarioCanal: (id, valor) => {
+        dispatch({ tipo: 'DEFINIR_HORARIO_CANAL', id, valor: valor || null });
+        apiDefinirCanal(dataTurno, id, valor).catch((e) => console.error('Falha ao salvar canal:', e));
+      },
+
+      iniciarAtendimentoGrupo: (nome, inicio) => {
+        apiIniciarAtendimentoGrupo(dataTurno, nome, inicio)
+          .then((log) => dispatch({ tipo: 'GRUPO_LOG_ADICIONADO', log }))
+          .catch((e) => console.error('Falha ao registrar atendimento:', e));
+      },
+
+      finalizarAtendimentoGrupo: (id, fim) => {
+        apiFinalizarAtendimentoGrupo(id, fim)
+          .then((log) => dispatch({ tipo: 'GRUPO_LOG_ATUALIZADO', log }))
+          .catch((e) => console.error('Falha ao encerrar atendimento:', e));
+      },
+
+      iniciarFila: (inicio, quantidade) => {
+        apiIniciarFila(dataTurno, inicio, quantidade)
+          .then((log) => dispatch({ tipo: 'FILA_LOG_ADICIONADO', log }))
+          .catch((e) => console.error('Falha ao registrar fila:', e));
+      },
+
+      finalizarFila: (id, fim) => {
+        apiFinalizarFila(id, fim)
+          .then((log) => dispatch({ tipo: 'FILA_LOG_ATUALIZADO', log }))
+          .catch((e) => console.error('Falha ao encerrar fila:', e));
+      },
+
+      registrarLigacoes: (quantidade) => {
+        dispatch({ tipo: 'INCREMENTAR_LIGACOES_OTIMISTA', quantidade });
+        apiRegistrarLigacoes(dataTurno, quantidade)
+          .then(({ callTotal }) => dispatch({ tipo: 'DEFINIR_CALL_TOTAL', total: callTotal }))
+          .catch((e) => console.error('Falha ao registrar ligações:', e));
+      },
+
+      registrarAgendaIndevida: (responsavel, oc, horario, evidencia) => {
+        apiRegistrarAgendaIndevida(dataTurno, responsavel, oc, horario, evidencia)
+          .then((log) => dispatch({ tipo: 'AGENDA_LOG_ADICIONADO', log }))
+          .catch((e) => console.error('Falha ao registrar OC indevida:', e));
+      },
+
+      definirResponsavelFechamento: (valor) => {
+        dispatch({ tipo: 'DEFINIR_RESPONSAVEL_FECHAMENTO', valor });
+        apiDefinirFechamento(dataTurno, { closureLead: valor }).catch((e) => console.error('Falha ao salvar responsável:', e));
+      },
+
+      definirObservacoes: (valor) => {
+        dispatch({ tipo: 'DEFINIR_OBSERVACOES', valor });
+        if (notasTimeout.current) clearTimeout(notasTimeout.current);
+        notasTimeout.current = setTimeout(() => {
+          apiDefinirFechamento(dataTurno, { closureNotes: valor }).catch((e) => console.error('Falha ao salvar observações:', e));
+        }, DEBOUNCE_OBSERVACOES_MS);
+      },
     }),
-    [state],
+    [state, dataTurno],
   );
 
   return <AcompanhamentoContext.Provider value={value}>{children}</AcompanhamentoContext.Provider>;

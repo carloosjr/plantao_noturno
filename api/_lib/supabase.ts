@@ -25,3 +25,13 @@ export function getSupabase(): SupabaseClient {
 
 export const TABELA_DEMANDAS = 'plantaonoturno_demandas';
 export const FUNCAO_DASHBOARD = 'plantaonoturno_dashboard';
+
+export const TABELA_TURNOS = 'plantaonoturno_turnos';
+export const TABELA_ATENDIMENTOS_GRUPO = 'plantaonoturno_atendimentos_grupo';
+export const TABELA_FILAS = 'plantaonoturno_filas';
+export const TABELA_AGENDA_INDEVIDA = 'plantaonoturno_agenda_indevida';
+
+export const FUNCAO_OBTER_TURNO = 'plantaonoturno_obter_turno';
+export const FUNCAO_DEFINIR_TAREFA = 'plantaonoturno_definir_tarefa';
+export const FUNCAO_DEFINIR_CANAL = 'plantaonoturno_definir_canal';
+export const FUNCAO_INCREMENTAR_LIGACOES = 'plantaonoturno_incrementar_ligacoes';

@@ -73,13 +73,14 @@ export const CANAIS: CanalDef[] = [
   { id: 'chat', nome: 'Chat', responsavel: 'Otávio / Gilseph', previsto: '20:00', statusInicial: 'Ativo até 20h', statusInicialTier: 'ok' },
 ];
 
-/** Estado inicial do turno — as duas primeiras tarefas já nascem concluídas, igual ao protótipo. */
+/** Estado antes do turno do dia ser carregado do servidor. */
 export function estadoInicialAcompanhamento(): AcompanhamentoState {
   return {
-    tarefasConcluidas: Object.fromEntries(
-      TAREFAS.map((tarefa) => [tarefa.id, tarefa.id === 'revisar-agenda' || tarefa.id === 'revisar-andamento']),
-    ) as AcompanhamentoState['tarefasConcluidas'],
-    canaisReal: Object.fromEntries(CANAIS.map((canal) => [canal.id, null])) as AcompanhamentoState['canaisReal'],
+    turnoId: null,
+    carregando: true,
+    erro: null,
+    tarefasConcluidas: {},
+    canaisReal: {},
     groupLogs: [],
     queueLogs: [],
     callTotal: 0,

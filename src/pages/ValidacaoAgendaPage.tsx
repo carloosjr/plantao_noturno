@@ -22,6 +22,19 @@ export default function ValidacaoAgendaPage() {
 
   const registros = [...state.agendaLogs].reverse();
 
+  if (state.carregando) {
+    return (
+      <>
+        <PageHeader
+          breadcrumb="Validação de agenda"
+          titulo="Validação de agenda"
+          subtitulo="OCs que chegaram na agenda de Matheus, Osiel ou Hercílio sem deveriam estar lá"
+        />
+        <div className="state-msg">Carregando o plantão de hoje…</div>
+      </>
+    );
+  }
+
   return (
     <>
       <PageHeader
@@ -29,6 +42,8 @@ export default function ValidacaoAgendaPage() {
         titulo="Validação de agenda"
         subtitulo="OCs que chegaram na agenda de Matheus, Osiel ou Hercílio sem deveriam estar lá"
       />
+
+      {state.erro ? <div className="state-msg error">{state.erro}</div> : null}
 
       <div className="log-card">
         <div className="log-form">

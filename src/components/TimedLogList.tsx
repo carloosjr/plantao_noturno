@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { duracaoMinutos } from '../lib/acompanhamento/health';
 
 export interface TimedLogItemBase {
-  id: number;
+  id: string;
   inicio: string;
   fim: string | null;
 }
@@ -13,7 +13,7 @@ interface Props<T extends TimedLogItemBase> {
   renderTitulo(item: T): ReactNode;
   /** 'interativo' permite registrar o fim de um item em aberto; 'historico' é somente leitura. */
   modo?: 'interativo' | 'historico';
-  onFinalizar?(id: number, fim: string): void;
+  onFinalizar?(id: string, fim: string): void;
   rotuloFinalizarBotao?: string;
   rotuloAberto?: string;
   rotuloFechado?: string;

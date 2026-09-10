@@ -83,9 +83,20 @@ export default function AcompanhamentoPage() {
     setQuantidadeLigacoes('');
   }
 
+  if (state.carregando) {
+    return (
+      <>
+        <PageHeader breadcrumb="Acompanhamento" titulo="Acompanhamento" subtitulo="Marque cada etapa conforme for concluída" />
+        <div className="state-msg">Carregando o plantão de hoje…</div>
+      </>
+    );
+  }
+
   return (
     <>
       <PageHeader breadcrumb="Acompanhamento" titulo="Acompanhamento" subtitulo="Marque cada etapa conforme for concluída" />
+
+      {state.erro ? <div className="state-msg error">{state.erro}</div> : null}
 
       <HealthGauge
         score={saude.overall}
@@ -103,7 +114,7 @@ export default function AcompanhamentoPage() {
           <TimelineItem
             key={tarefa.id}
             tarefa={tarefa}
-            concluida={state.tarefasConcluidas[tarefa.id]}
+            concluida={state.tarefasConcluidas[tarefa.id] ?? false}
             onAlternar={() => alternarTarefa(tarefa.id)}
           />
         ))}
@@ -115,7 +126,7 @@ export default function AcompanhamentoPage() {
           <ChannelCard
             key={canal.id}
             canal={canal}
-            valor={state.canaisReal[canal.id]}
+            valor={state.canaisReal[canal.id] ?? null}
             onChange={(valor) => definirHorarioCanal(canal.id, valor)}
           />
         ))}
