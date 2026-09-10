@@ -14,7 +14,7 @@ export default function Donut({ percentual, rotulo }: Props) {
       className="donut"
       role="img"
       aria-label={`${rotulo}: ${formatarPercentual(percentual)}`}
-      style={{ background: `conic-gradient(var(--primary) 0deg ${angulo}deg, #e8edf8 ${angulo}deg 360deg)` }}
+      style={{ background: `conic-gradient(var(--primary) 0deg ${angulo}deg, var(--panel-alt) ${angulo}deg 360deg)` }}
     >
       <div className="donut-inner">
         <div>

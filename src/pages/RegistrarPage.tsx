@@ -1,14 +1,6 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  GRUPOS_WHATSAPP,
-  ORIGEM_LABEL,
-  ORIGENS,
-  TECNICOS_PLANTAO,
-  TIPOS_DEMANDA,
-  validarDemanda,
-  type Origem,
-} from '../../shared/domain';
+import { TECNICOS_PLANTAO, TIPOS_DEMANDA, validarDemanda } from '../../shared/domain';
 import { ApiError, registrarDemanda } from '../lib/api';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
@@ -17,10 +9,8 @@ import Toast, { type Aviso } from '../components/Toast';
 interface EstadoFormulario {
   clienteRegistro: string;
   tecnicoPlantao: string;
-  origem: Origem;
   tecnicoAnterior: string;
   protocoloAnterior: string;
-  grupoWhatsapp: string;
   tipoDemanda: string;
   recorrente: 'Sim' | 'Não';
 }
@@ -28,10 +18,8 @@ interface EstadoFormulario {
 const ESTADO_INICIAL: EstadoFormulario = {
   clienteRegistro: '',
   tecnicoPlantao: '',
-  origem: 'CONTINUACAO',
   tecnicoAnterior: '',
   protocoloAnterior: '',
-  grupoWhatsapp: '',
   tipoDemanda: '',
   recorrente: 'Não',
 };
@@ -60,26 +48,10 @@ export default function RegistrarPage() {
   const alterar = <K extends keyof EstadoFormulario>(campo: K, valor: EstadoFormulario[K]) =>
     setForm((atual) => ({ ...atual, [campo]: valor }));
 
-  const trocarOrigem = (origem: Origem) =>
-    setForm((atual) => ({
-      ...atual,
-      origem,
-      // Limpa os dados que não pertencem à nova origem.
-      tecnicoAnterior: origem === 'CONTINUACAO' ? atual.tecnicoAnterior : '',
-      protocoloAnterior: origem === 'CONTINUACAO' ? atual.protocoloAnterior : '',
-      grupoWhatsapp: origem === 'GRUPO_WHATSAPP' ? atual.grupoWhatsapp : '',
-    }));
-
-  const detalheResumo = useMemo(() => {
-    if (form.origem === 'CONTINUACAO') return form.tecnicoAnterior;
-    if (form.origem === 'GRUPO_WHATSAPP') return form.grupoWhatsapp;
-    return 'Contato direto do cliente';
-  }, [form.origem, form.tecnicoAnterior, form.grupoWhatsapp]);
-
   async function enviar(evento: FormEvent) {
     evento.preventDefault();
 
-    const validacao = validarDemanda({ ...form, recorrente: form.recorrente === 'Sim' });
+    const validacao = validarDemanda({ ...form, origem: 'CONTINUACAO', recorrente: form.recorrente === 'Sim' });
     if (!validacao.ok) {
       setErros(validacao.erros);
       return;
@@ -92,8 +64,8 @@ export default function RegistrarPage() {
       setForm(ESTADO_INICIAL);
       setAviso({
         tipo: 'sucesso',
-        titulo: 'Demanda registrada',
-        texto: `Registro ${demanda.clienteRegistro} salvo em ${ORIGEM_LABEL[demanda.origem].toLowerCase()}.`,
+        titulo: 'Continuação registrada',
+        texto: `Registro ${demanda.clienteRegistro} salvo como continuação de atendimento.`,
       });
     } catch (e) {
       const detalhes = e instanceof ApiError ? e.detalhes : [];
@@ -111,9 +83,9 @@ export default function RegistrarPage() {
   return (
     <>
       <PageHeader
-        breadcrumb="Registrar demanda"
-        titulo="Novo registro de demanda"
-        subtitulo="Registre rapidamente de onde vêm as demandas recebidas pelo plantão."
+        breadcrumb="Registrar continuações"
+        titulo="Registrar continuações"
+        subtitulo="Registre rapidamente as continuações de atendimento que chegam ao plantão."
       />
 
       <div className="form-layout">
@@ -161,86 +133,42 @@ export default function RegistrarPage() {
                 </select>
               </div>
             </div>
-
-            <div className="divider" />
-
-            <div className="section-title">
-              3. Origem da demanda <span className="req">*</span>
-            </div>
-            <div className="origin-grid">
-              {ORIGENS.map((origem) => (
-                <label className="radio-line" key={origem}>
-                  <input
-                    type="radio"
-                    name="origem"
-                    value={origem}
-                    checked={form.origem === origem}
-                    onChange={() => trocarOrigem(origem)}
-                  />
-                  {ORIGEM_LABEL[origem]}
-                </label>
-              ))}
-            </div>
           </Card>
 
-          {form.origem === 'CONTINUACAO' ? (
-            <Card className="highlight">
-              <div className="section-title primary">4. Dados da continuação</div>
-              <div className="grid-2">
-                <div>
-                  <label htmlFor="tecnicoAnterior">
-                    Técnico anterior <span className="req">*</span>
-                  </label>
-                  <input
-                    id="tecnicoAnterior"
-                    type="text"
-                    autoComplete="off"
-                    placeholder="Digite o nome do técnico"
-                    value={form.tecnicoAnterior}
-                    onChange={(e) => alterar('tecnicoAnterior', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="protocoloAnterior">Protocolo / chamado anterior</label>
-                  <input
-                    id="protocoloAnterior"
-                    type="text"
-                    autoComplete="off"
-                    placeholder="Ex.: 2026-12345"
-                    value={form.protocoloAnterior}
-                    onChange={(e) => alterar('protocoloAnterior', e.target.value)}
-                  />
-                </div>
+          <Card className="highlight">
+            <div className="section-title primary">3. Dados da continuação</div>
+            <div className="grid-2">
+              <div>
+                <label htmlFor="tecnicoAnterior">
+                  Técnico anterior <span className="req">*</span>
+                </label>
+                <input
+                  id="tecnicoAnterior"
+                  type="text"
+                  autoComplete="off"
+                  placeholder="Digite o nome do técnico"
+                  value={form.tecnicoAnterior}
+                  onChange={(e) => alterar('tecnicoAnterior', e.target.value)}
+                />
               </div>
-              <div className="hint">ⓘ Use estes dados para identificar de qual atendimento anterior a demanda veio.</div>
-            </Card>
-          ) : null}
-
-          {form.origem === 'GRUPO_WHATSAPP' ? (
-            <Card className="highlight">
-              <div className="section-title primary">4. Dados do grupo de WhatsApp</div>
-              <label htmlFor="grupoWhatsapp">
-                Nome do grupo <span className="req">*</span>
-              </label>
-              <select
-                id="grupoWhatsapp"
-                value={form.grupoWhatsapp}
-                onChange={(e) => alterar('grupoWhatsapp', e.target.value)}
-              >
-                <option value="">Selecione o grupo</option>
-                {GRUPOS_WHATSAPP.map((grupo) => (
-                  <option key={grupo} value={grupo}>
-                    {grupo}
-                  </option>
-                ))}
-              </select>
-              <div className="hint">ⓘ Informe o grupo que originou a demanda para permitir análise posterior.</div>
-            </Card>
-          ) : null}
+              <div>
+                <label htmlFor="protocoloAnterior">Protocolo / chamado anterior</label>
+                <input
+                  id="protocoloAnterior"
+                  type="text"
+                  autoComplete="off"
+                  placeholder="Ex.: 2026-12345"
+                  value={form.protocoloAnterior}
+                  onChange={(e) => alterar('protocoloAnterior', e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="hint">ⓘ Use estes dados para identificar de qual atendimento anterior a demanda veio.</div>
+          </Card>
 
           <Card>
             <div className="section-title">
-              5. Tipo da demanda <span className="req">*</span>
+              4. Tipo da demanda <span className="req">*</span>
             </div>
             <select
               id="tipoDemanda"
@@ -299,7 +227,7 @@ export default function RegistrarPage() {
               Cancelar
             </button>
             <button type="submit" className="btn btn-primary" disabled={enviando}>
-              {enviando ? 'Registrando…' : '💾 Registrar demanda'}
+              {enviando ? 'Registrando…' : '💾 Registrar continuação'}
             </button>
           </div>
         </form>
@@ -308,10 +236,9 @@ export default function RegistrarPage() {
           <h3>Resumo do registro</h3>
           <ResumoItem icone="C" rotulo="Registro do cliente" valor={form.clienteRegistro} />
           <ResumoItem icone="T" rotulo="Técnico do plantão" valor={form.tecnicoPlantao} />
-          <ResumoItem icone="O" rotulo="Origem" valor={ORIGEM_LABEL[form.origem]} />
-          <ResumoItem icone="D" rotulo="Detalhe da origem" valor={detalheResumo} />
+          <ResumoItem icone="A" rotulo="Técnico anterior" valor={form.tecnicoAnterior} />
           <ResumoItem icone="T" rotulo="Tipo da demanda" valor={form.tipoDemanda} />
-          <div className="summary-note">ⓘ O objetivo é registrar rapidamente o que chegou e de onde veio.</div>
+          <div className="summary-note">ⓘ O objetivo é registrar rapidamente as continuações que chegam ao plantão.</div>
         </aside>
       </div>
 

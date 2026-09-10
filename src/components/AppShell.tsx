@@ -2,9 +2,13 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
 const MENU = [
-  { to: '/painel', icone: '▥', rotulo: 'Painel do plantão' },
-  { to: '/registrar', icone: '✎', rotulo: 'Registrar demanda' },
+  { to: '/painel', icone: '▥', rotulo: 'Painel do plantão', oculto: true },
+  { to: '/registrar', icone: '✎', rotulo: 'Registrar continuações', secao: 'Origem das demandas' },
   { to: '/demandas', icone: '▤', rotulo: 'Demandas registradas' },
+  { to: '/acompanhamento', icone: '☑', rotulo: 'Acompanhamento' },
+  { to: '/produtividade', icone: '📈', rotulo: 'Produtividade' },
+  { to: '/validacao-agenda', icone: '🗓', rotulo: 'Validação de agenda' },
+  { to: '/fechamento', icone: '✔', rotulo: 'Fechamento' },
 ];
 
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -36,11 +40,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <div className="pill">🌙 Plantão Noturno</div>
 
         <nav>
-          {MENU.map((item) => (
-            <NavLink key={item.to} to={item.to} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-              <span aria-hidden="true">{item.icone}</span>
-              {item.rotulo}
-            </NavLink>
+          {MENU.filter((item) => !item.oculto).map((item) => (
+            <div key={item.to}>
+              {item.secao ? <div className="nav-section-label">{item.secao}</div> : null}
+              <NavLink to={item.to} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+                <span aria-hidden="true">{item.icone}</span>
+                {item.rotulo}
+              </NavLink>
+            </div>
           ))}
         </nav>
 

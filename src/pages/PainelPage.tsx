@@ -77,7 +77,7 @@ export default function PainelPage() {
               ↻ Atualizar
             </button>
             <Link to="/registrar" className="btn btn-primary">
-              ＋ Registrar demanda
+              ＋ Registrar continuação
             </Link>
           </>
         }
