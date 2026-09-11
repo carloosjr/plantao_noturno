@@ -66,6 +66,7 @@ export default function AcompanhamentoPage() {
   const [quantidadeFila, setQuantidadeFila] = useState('');
   const [quantidadeLigacoes, setQuantidadeLigacoes] = useState('');
   const [horaLigacao, setHoraLigacao] = useState('');
+  const [evidenciaLigacao, setEvidenciaLigacao] = useState('');
 
   function adicionarAtendimentoGrupo() {
     if (!nomeGrupo.trim() || !inicioGrupo) return;
@@ -85,9 +86,10 @@ export default function AcompanhamentoPage() {
   function adicionarLigacoes() {
     const quantidade = parseInt(quantidadeLigacoes, 10);
     if (!quantidade || quantidade < 1) return;
-    registrarLigacoes(quantidade, horaLigacao || undefined);
+    registrarLigacoes(quantidade, horaLigacao || undefined, evidenciaLigacao.trim() || undefined);
     setQuantidadeLigacoes('');
     setHoraLigacao('');
+    setEvidenciaLigacao('');
   }
 
   if (state.carregando) {
@@ -239,6 +241,13 @@ export default function AcompanhamentoPage() {
             value={horaLigacao}
             onChange={(e) => setHoraLigacao(e.target.value)}
           />
+          <input
+            type="url"
+            className="log-input log-name"
+            placeholder="Evidência (link do print)"
+            value={evidenciaLigacao}
+            onChange={(e) => setEvidenciaLigacao(e.target.value)}
+          />
           <button type="button" className="btn" onClick={adicionarLigacoes}>
             Adicionar
           </button>
@@ -257,6 +266,17 @@ export default function AcompanhamentoPage() {
                   <span className="log-name">{log.quantidade} ligações</span>
                   <span className="log-time-range">{log.horario ?? formatarHora(log.criadoEm)}</span>
                 </div>
+                {log.evidencia ? (
+                  <a
+                    href={log.evidencia}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="log-status open"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    Evidência
+                  </a>
+                ) : null}
                 <button
                   type="button"
                   className="btn sm log-delete-btn"

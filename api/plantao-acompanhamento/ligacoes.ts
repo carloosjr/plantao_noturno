@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 }
 
-/** POST /api/plantao-acompanhamento/ligacoes?data=YYYY-MM-DD — Body: { quantidade, horario? } */
+/** POST /api/plantao-acompanhamento/ligacoes?data=YYYY-MM-DD — Body: { quantidade, horario?, evidencia? } */
 async function criar(req: VercelRequest, res: VercelResponse): Promise<void> {
   const data = param(req, 'data');
   if (!data || !dataValida(data)) {
@@ -34,12 +34,14 @@ async function criar(req: VercelRequest, res: VercelResponse): Promise<void> {
     return erro(res, 400, 'horario inválido (esperado HH:MM).');
   }
 
+  const evidencia = typeof corpo.evidencia === 'string' && corpo.evidencia.trim() ? corpo.evidencia.trim() : null;
+
   const supabase = getSupabase();
   const turno = await obterTurno(supabase, data);
 
   const { data: row, error } = await supabase
     .from(TABELA_LIGACOES)
-    .insert({ turno_id: turno.id, quantidade, horario })
+    .insert({ turno_id: turno.id, quantidade, horario, evidencia })
     .select(COLUNAS_LIGACAO)
     .single<LigacaoRow>();
 

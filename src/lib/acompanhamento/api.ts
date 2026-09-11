@@ -62,11 +62,16 @@ export async function definirCanal(
   return tratar(resposta);
 }
 
-export async function registrarLigacoes(data: string, quantidade: number, horario?: string): Promise<Ligacao> {
+export async function registrarLigacoes(
+  data: string,
+  quantidade: number,
+  horario?: string,
+  evidencia?: string,
+): Promise<Ligacao> {
   const resposta = await fetch(comData(`${BASE}/ligacoes`, data), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ quantidade, horario }),
+    body: JSON.stringify({ quantidade, horario, evidencia }),
   });
   return tratar(resposta);
 }
