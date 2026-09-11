@@ -74,6 +74,7 @@ export interface Ligacao {
   id: string;
   turnoId: string;
   quantidade: number;
+  horario: string | null;
   criadoEm: string;
 }
 

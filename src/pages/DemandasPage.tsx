@@ -8,17 +8,16 @@ import {
 } from '../../shared/domain';
 import { listarDemandas, type FiltrosDemandas } from '../lib/api';
 import { baixarCsv, gerarCsv } from '../lib/csv';
-import { intervaloDoPeriodo, type Periodo } from '../lib/periodo';
 import Card from '../components/Card';
 import DemandaDrawer from '../components/DemandaDrawer';
 import DemandasTable from '../components/DemandasTable';
 import PageHeader from '../components/PageHeader';
-import PeriodoSelect from '../components/PeriodoSelect';
 import StatCard from '../components/StatCard';
 
 interface EstadoFiltros {
   clienteRegistro: string;
-  periodo: Periodo;
+  dataInicio: string;
+  dataFim: string;
   tecnicoPlantao: string;
   origem: string;
   tipoDemanda: string;
@@ -27,7 +26,8 @@ interface EstadoFiltros {
 
 const FILTROS_INICIAIS: EstadoFiltros = {
   clienteRegistro: '',
-  periodo: 'todo',
+  dataInicio: '',
+  dataFim: '',
   tecnicoPlantao: '',
   origem: '',
   tipoDemanda: '',
@@ -39,7 +39,8 @@ const LIMITE_CSV = 5000;
 
 function paraQuery(filtros: EstadoFiltros, limite: number): FiltrosDemandas {
   return {
-    ...intervaloDoPeriodo(filtros.periodo),
+    startDate: filtros.dataInicio ? new Date(`${filtros.dataInicio}T00:00:00`).toISOString() : undefined,
+    endDate: filtros.dataFim ? new Date(`${filtros.dataFim}T23:59:59.999`).toISOString() : undefined,
     clienteRegistro: filtros.clienteRegistro || undefined,
     tecnicoPlantao: filtros.tecnicoPlantao || undefined,
     origem: filtros.origem || undefined,
@@ -132,8 +133,25 @@ export default function DemandasPage() {
           </div>
 
           <div className="field">
-            <label htmlFor="fPeriodo">Período</label>
-            <PeriodoSelect id="fPeriodo" valor={filtros.periodo} onChange={(p) => alterar('periodo', p)} />
+            <label htmlFor="fDataInicio">De</label>
+            <input
+              id="fDataInicio"
+              type="date"
+              max={filtros.dataFim || undefined}
+              value={filtros.dataInicio}
+              onChange={(e) => alterar('dataInicio', e.target.value)}
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="fDataFim">Até</label>
+            <input
+              id="fDataFim"
+              type="date"
+              min={filtros.dataInicio || undefined}
+              value={filtros.dataFim}
+              onChange={(e) => alterar('dataFim', e.target.value)}
+            />
           </div>
 
           <div className="field">

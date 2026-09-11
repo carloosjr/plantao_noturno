@@ -65,6 +65,7 @@ export default function AcompanhamentoPage() {
   const [inicioFila, setInicioFila] = useState('');
   const [quantidadeFila, setQuantidadeFila] = useState('');
   const [quantidadeLigacoes, setQuantidadeLigacoes] = useState('');
+  const [horaLigacao, setHoraLigacao] = useState('');
 
   function adicionarAtendimentoGrupo() {
     if (!nomeGrupo.trim() || !inicioGrupo) return;
@@ -84,8 +85,9 @@ export default function AcompanhamentoPage() {
   function adicionarLigacoes() {
     const quantidade = parseInt(quantidadeLigacoes, 10);
     if (!quantidade || quantidade < 1) return;
-    registrarLigacoes(quantidade);
+    registrarLigacoes(quantidade, horaLigacao || undefined);
     setQuantidadeLigacoes('');
+    setHoraLigacao('');
   }
 
   if (state.carregando) {
@@ -230,6 +232,13 @@ export default function AcompanhamentoPage() {
             value={quantidadeLigacoes}
             onChange={(e) => setQuantidadeLigacoes(e.target.value)}
           />
+          <input
+            type="time"
+            className="log-input log-time"
+            aria-label="Hora da última ligação"
+            value={horaLigacao}
+            onChange={(e) => setHoraLigacao(e.target.value)}
+          />
           <button type="button" className="btn" onClick={adicionarLigacoes}>
             Adicionar
           </button>
@@ -246,7 +255,7 @@ export default function AcompanhamentoPage() {
               <div className="log-row" key={log.id}>
                 <div className="log-row-main">
                   <span className="log-name">{log.quantidade} ligações</span>
-                  <span className="log-time-range">{formatarHora(log.criadoEm)}</span>
+                  <span className="log-time-range">{log.horario ?? formatarHora(log.criadoEm)}</span>
                 </div>
                 <button
                   type="button"

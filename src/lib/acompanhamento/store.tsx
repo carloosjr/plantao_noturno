@@ -130,7 +130,7 @@ interface AcompanhamentoContextValue {
   iniciarFila(inicio: string, quantidade: number): void;
   finalizarFila(id: string, fim: string): void;
   excluirFila(id: string): void;
-  registrarLigacoes(quantidade: number): void;
+  registrarLigacoes(quantidade: number, horario?: string): void;
   excluirLigacao(id: string): void;
   registrarAgendaIndevida(registro: number, responsavel: ResponsavelAgenda, oc: string, horario: string, evidencia: string): void;
   excluirAgendaIndevida(id: string): void;
@@ -225,8 +225,8 @@ export function AcompanhamentoProvider({ children }: { children: ReactNode }) {
         apiExcluirFila(id).catch((e) => console.error('Falha ao excluir fila:', e));
       },
 
-      registrarLigacoes: (quantidade) => {
-        apiRegistrarLigacoes(dataTurno, quantidade)
+      registrarLigacoes: (quantidade, horario) => {
+        apiRegistrarLigacoes(dataTurno, quantidade, horario)
           .then((log) => dispatch({ tipo: 'LIGACAO_ADICIONADA', log }))
           .catch((e) => console.error('Falha ao registrar ligações:', e));
       },

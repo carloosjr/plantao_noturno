@@ -11,7 +11,7 @@ export const TAREFAS: TarefaDef[] = [
   {
     id: 'revisar-andamento',
     horario: '17:30',
-    titulo: 'Revisar andamento',
+    titulo: 'Revisar andamento de tickets do Chat e OCs dos Especialistas',
     descricao: 'Verificar o andamento das OCs e identificar o que será concluído e o que pode avançar para o plantão',
   },
   {

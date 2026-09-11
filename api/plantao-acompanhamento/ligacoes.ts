@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { COLUNAS_LIGACAO, obterTurno, paraLigacao, type LigacaoRow } from '../_lib/acompanhamento.js';
 import { erro, json, param } from '../_lib/http.js';
 import { getSupabase, TABELA_LIGACOES } from '../_lib/supabase.js';
-import { dataValida } from '../../shared/acompanhamento.js';
+import { dataValida, horarioValido } from '../../shared/acompanhamento.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   try {
@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 }
 
-/** POST /api/plantao-acompanhamento/ligacoes?data=YYYY-MM-DD — Body: { quantidade } */
+/** POST /api/plantao-acompanhamento/ligacoes?data=YYYY-MM-DD — Body: { quantidade, horario? } */
 async function criar(req: VercelRequest, res: VercelResponse): Promise<void> {
   const data = param(req, 'data');
   if (!data || !dataValida(data)) {
@@ -29,12 +29,17 @@ async function criar(req: VercelRequest, res: VercelResponse): Promise<void> {
     return erro(res, 400, 'quantidade deve ser um número inteiro positivo.');
   }
 
+  const horario = corpo.horario || null;
+  if (horario !== null && !horarioValido(horario)) {
+    return erro(res, 400, 'horario inválido (esperado HH:MM).');
+  }
+
   const supabase = getSupabase();
   const turno = await obterTurno(supabase, data);
 
   const { data: row, error } = await supabase
     .from(TABELA_LIGACOES)
-    .insert({ turno_id: turno.id, quantidade })
+    .insert({ turno_id: turno.id, quantidade, horario })
     .select(COLUNAS_LIGACAO)
     .single<LigacaoRow>();
 

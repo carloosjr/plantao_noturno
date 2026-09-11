@@ -101,11 +101,18 @@ export interface LigacaoRow {
   id: string;
   turno_id: string;
   quantidade: number;
+  horario: string | null;
   created_at: string;
 }
 
-export const COLUNAS_LIGACAO = 'id, turno_id, quantidade, created_at';
+export const COLUNAS_LIGACAO = 'id, turno_id, quantidade, horario, created_at';
 
 export function paraLigacao(row: LigacaoRow): Ligacao {
-  return { id: row.id, turnoId: row.turno_id, quantidade: row.quantidade, criadoEm: row.created_at };
+  return {
+    id: row.id,
+    turnoId: row.turno_id,
+    quantidade: row.quantidade,
+    horario: row.horario,
+    criadoEm: row.created_at,
+  };
 }
