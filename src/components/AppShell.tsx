@@ -9,6 +9,7 @@ const MENU = [
   { to: '/produtividade', icone: '📈', rotulo: 'Produtividade' },
   { to: '/validacao-agenda', icone: '🗓', rotulo: 'Validação de agenda' },
   { to: '/fechamento', icone: '✔', rotulo: 'Fechamento' },
+  { to: '/smart', icone: '📱', rotulo: 'Gerador de Caso Smart', secao: 'Padronização de Casos' },
 ];
 
 export default function AppShell({ children }: { children: ReactNode }) {

@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Chamados - Smart</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        smart: {
+                            500: '#06b6d4',
+                            600: '#0891b2',
+                            700: '#0e7490'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="h-full font-sans antialiased bg-slate-950 text-slate-100 flex flex-col min-h-screen">
+
+    <!-- HEADER -->
+    <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-30 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-cyan-600 text-white p-2.5 rounded-xl shadow-lg shadow-cyan-500/20 flex items-center justify-center">
+                    <i class="fa-solid fa-mobile-screen-button text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                        Softcom Smart <span class="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30">Adquirentes & POS</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Padronização de Casos & Registro de Erros Smart</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="loadTemplateBlank()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg transition-all flex items-center gap-1.5" title="Gerar modelo em branco">
+                    <i class="fa-regular fa-file-lines text-slate-400"></i>
+                    <span class="hidden sm:inline">Modelo</span> Vazio
+                </button>
+                <button onclick="loadSmartExample()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+                    <span class="hidden sm:inline">Carregar</span> Exemplo Modelo
+                </button>
+                <button onclick="clearForm()" class="px-3 py-1.5 text-xs font-medium bg-slate-800/60 hover:bg-red-500/20 text-slate-400 hover:text-red-300 border border-slate-700 hover:border-red-500/30 rounded-lg transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span class="hidden sm:inline">Limpar</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- STATUS BAR -->
+    <div class="bg-slate-900/50 border-b border-slate-800/80 py-2.5 px-4 sm:px-8">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2 text-slate-300">
+                <i class="fa-solid fa-circle-info text-cyan-400"></i>
+                <span>Produto fixado como <strong>Smart</strong>. Os dispositivos são filtrados dinamicamente pela adquirência.</span>
+            </div>
+            
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <span class="text-slate-400 font-medium whitespace-nowrap">Qualidade do Chamado:</span>
+                <div class="w-full sm:w-48 bg-slate-800 rounded-full h-2.5 overflow-hidden p-0.5 border border-slate-700/50">
+                    <div id="quality-bar" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 20%;"></div>
+                </div>
+                <span id="quality-score" class="font-bold text-amber-400 min-w-[3rem]">20%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- LEFT COLUMN: Formulário -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 1. IDENTIFICAÇÃO DO CLIENTE -->
+                <section class="glass-panel rounded-2xl p-5 shadow-xl">
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-800">
+                        <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-sm">1</div>
+                        <div>
+                            <h2 class="font-semibold text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-id-card text-cyan-400"></i>
+                                Identificação do Cliente
+                            </h2>
+                            <p class="text-[11px] text-slate-400">Informações da conta e acesso ao ambiente</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Registro <span class="text-rose-400">*</span></label>
+                            <input type="text" id="input-registro" placeholder="Ex: 65190" oninput="updateScript()" class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Nome do Cliente</label>
+                            <input type="text" id="input-nome" placeholder="Ex: Mercado Silva LTDA" oninput="updateScript()" class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Link do Sistema</label>
+                            <input type="url" id="input-link-cliente" placeholder="Ex: https://exemplo.meusoftcom.com.br/" oninput="updateScript()" class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">CNPJ (quando necessário)</label>
+                            <input type="text" id="input-cnpj" placeholder="Ex: 00.000.000/0001-00" oninput="updateScript()" class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 outline-none">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. AMBIENTE DO SMART (ADQUIRENTE, VERSÃO, CONEXÃO, DISPOSITIVO) -->
+                <section class="glass-panel rounded-2xl p-5 shadow-xl border border-cyan-500/20">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-sm">2</div>
+                            <div>
+                                <h2 class="font-semibold text-slate-100 flex items-center gap-2">
+                                    <i class="fa-solid fa-calculator text-cyan-400"></i>
+                                    Dispositivo & Adquirência Smart
+                                </h2>
+                                <p class="text-[11px] text-slate-400">Modelos vinculados diretamente à homologação da adquirente</p>
+                            </div>
+                        </div>
+                        <span id="adquirente-badge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Selecione a Adquirência</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Adquirente -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Adquirência <span class="text-rose-400">*</span></label>
+                            <select id="input-adquirente" onchange="handleAdquirenteChange()" class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl px-3 py-2 text-sm text-slate-100 outline-none cursor-pointer">
+                                <option value="">Selecione a adquirência...</option>
+                                <option value="Playstore">Playstore</option>
+                                <option value="Rede">Rede</option>
+                                <option value="Stone">Stone</option>
+                                <option value="Pagbank">Pagbank</option>
+                                <option value="Cielo">Cielo</option>
+                                <option value="Getnet">Getnet</option>
+                                <option value="Safrapay">Safrapay</option>
+                                <option value="Sicoob/Sipag">Sicoob/Sipag</option>
+                                <option value="Fiserv Caixa/Bin/Sicredi">Fiserv Caixa/Bin/Sicredi</option>
+                                <option value="Mercado Pago">Mercado Pago</option>
+                                <option value="Clover">Clover</option>
+                                <option value="Quickpay">Quickpay</option>
+                            </select>
+                        </div>
+
+                        <!-- Versão Atual -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Versão Atual <span class="text-rose-400">*</span></label>
+                            <input type="text" id="input-versao" placeholder="Ex: 8.0.0.0" oninput="updateScript()" class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 outline-none font-mono">
+                        </div>
+
+                        <!-- Conexão -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Conexão <span class="text-rose-400">*</span></label>
+                            <select id="input-conexao" onchange="updateScript()" class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl px-3 py-2 text-sm text-slate-100 outline-none cursor-pointer">
+                                <option value="">Selecione o tipo de conexão...</option>
+                                <option value="Wi-Fi">Wi-Fi</option>
+                                <option value="4G">4G / Dados Móveis</option>
+                                <option value="Wi-Fi + 4G">Wi-Fi + 4G</option>
+                                <option value="Ethernet">Ethernet / Cabo</option>
+                            </select>
+                        </div>
+
+                        <!-- Modelo do Dispositivo (Dropdown Dinâmico) -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Modelo do Dispositivo <span class="text-rose-400">*</span></label>
+                            <select id="input-modelo" onchange="updateScript()" class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl px-3 py-2 text-sm text-slate-100 outline-none cursor-pointer">
+                                <option value="">Selecione a adquirência primeiro...</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. LOCAL DO PROBLEMA & CABEÇALHO -->
+                <section class="glass-panel rounded-2xl p-5 shadow-xl">
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-800">
+                        <div class="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-sm">3</div>
+                        <div>
+                            <h2 class="font-semibold text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-sitemap text-blue-400"></i>
+                                Linha de Cabeçalho (Smart)
+                            </h2>
+                            <p class="text-[11px] text-slate-400">Formato: Smart > Caminho em tela: descrição resumida</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Produto</label>
+                            <input type="text" id="input-produto" value="Smart" readonly class="w-full bg-slate-900/60 border border-slate-800 text-cyan-400 font-bold rounded-xl px-3 py-2 text-sm cursor-not-allowed outline-none select-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Caminho em Tela no Smart <span class="text-rose-400">*</span></label>
+                            <input type="text" id="input-caminho" placeholder="Ex: Mesas>Comanda>Lançamento de Itens" oninput="updateScript()" class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 outline-none">
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-medium text-slate-300">Descrição Resumida (máx. 180 caracteres) <span class="text-rose-400">*</span></label>
+                                <span id="resumo-counter" class="text-[11px] font-mono text-slate-400">0 / 180</span>
+                            </div>
+                            <input type="text" id="input-resumo" maxlength="180" placeholder="Ex: Ao selecionar observação personalizada no produto, o app do Smart fecha abruptamente." oninput="updateScript()" class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 outline-none">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. DESCRIÇÃO DETALHADA -->
+                <section class="glass-panel rounded-2xl p-5 shadow-xl">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-sm">4</div>
+                            <div>
+                                <h2 class="font-semibold text-slate-100 flex items-center gap-2">
+                                    <i class="fa-solid fa-align-left text-indigo-400"></i>
+                                    Descrição Detalhada
+                                </h2>
+                                <p class="text-[11px] text-slate-400">Estrutura de itens: 1 -, 1.1 -, 1.2 -, etc.</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="addDescGroup()" class="text-xs px-2.5 py-1 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-lg font-medium transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus"></i> Add Item Principal
+                        </button>
+                    </div>
+
+                    <div id="desc-container" class="space-y-3"></div>
+                </section>
+
+                <!-- 5. PASSOS A REPRODUZIR -->
+                <section class="glass-panel rounded-2xl p-5 shadow-xl">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">5</div>
+                            <div>
+                                <h2 class="font-semibold text-slate-100 flex items-center gap-2">
+                                    <i class="fa-solid fa-list-ol text-emerald-400"></i>
+                                    Passos a Reproduzir no Smart
+                                </h2>
+                                <p class="text-[11px] text-slate-400">Passos sequenciais curtos (1-, 2-, ...)</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="addStep()" class="text-xs px-2.5 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg font-medium transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus"></i> Add Passo
+                        </button>
+                    </div>
+
+                    <div id="steps-container" class="space-y-2"></div>
+                </section>
+
+                <!-- 6. EVIDÊNCIAS -->
+                <section class="glass-panel rounded-2xl p-5 shadow-xl">
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-800">
+                        <div class="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-sm">6</div>
+                        <div>
+                            <h2 class="font-semibold text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-paperclip text-purple-400"></i>
+                                Evidências & Anexos
+                            </h2>
+                            <p class="text-[11px] text-slate-400">Links de prints, vídeos e registros de conversa</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-medium text-slate-300 mb-1"><i class="fa-solid fa-link text-purple-400 mr-1"></i> Link do HedgeDoc / Servidor de Retaguarda</label>
+                            <input type="url" id="input-link-hedgedoc" placeholder="Ex: https://hedgedoc.softhubs.com.br/..." oninput="updateScript()" class="w-full bg-slate-950 border border-slate-800 focus:border-purple-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1"><i class="fa-regular fa-image text-purple-400 mr-1"></i> [Print] Link do Print da Tela</label>
+                            <input type="text" id="input-print" placeholder="Link do print" oninput="updateScript()" class="w-full bg-slate-950 border border-slate-800 focus:border-purple-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1"><i class="fa-solid fa-video text-purple-400 mr-1"></i> [Vídeo] Gravação da Operação</label>
+                            <input type="text" id="input-video" placeholder="Link do vídeo gravado" oninput="updateScript()" class="w-full bg-slate-950 border border-slate-800 focus:border-purple-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1"><i class="fa-solid fa-file-arrow-up text-purple-400 mr-1"></i> [Arquivo] Log / Arquivo Anexo</label>
+                            <input type="text" id="input-arquivo" placeholder="Link do arquivo no Discord" oninput="updateScript()" class="w-full bg-slate-950 border border-slate-800 focus:border-purple-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1"><i class="fa-brands fa-discord text-purple-400 mr-1"></i> Thread de Conversa no Discord</label>
+                            <input type="text" id="input-discord" placeholder="Ex: Discord: #smart-mobile > caso-obs-fechando" oninput="updateScript()" class="w-full bg-slate-950 border border-slate-800 focus:border-purple-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none">
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- RIGHT COLUMN: Preview & Checklist -->
+            <div class="lg:col-span-5 space-y-6">
+                <div class="sticky top-20 space-y-4">
+                    
+                    <div class="glass-panel rounded-2xl p-5 shadow-2xl border border-slate-700/80">
+                        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-brands fa-markdown text-cyan-400 text-lg"></i>
+                                <h3 class="font-semibold text-slate-200 text-sm">Relatório Smart Formatado</h3>
+                            </div>
+                            <span class="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded font-mono">Padrão Equipe</span>
+                        </div>
+
+                        <p class="text-xs text-slate-400 mb-3">
+                            Pronto para envio nos chamados do time:
+                        </p>
+
+                        <div class="relative">
+                            <textarea id="output-script" readonly rows="19" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs font-mono text-emerald-400 leading-relaxed outline-none resize-none select-all focus:border-slate-700"></textarea>
+
+                            <button onclick="copyToClipboard()" class="w-full mt-3 py-3 px-4 bg-cyan-600 hover:bg-cyan-500 active:scale-[0.98] text-white font-semibold text-sm rounded-xl shadow-lg shadow-cyan-600/30 transition-all flex items-center justify-center gap-2">
+                                <i class="fa-regular fa-copy text-base"></i>
+                                Copiar Relatório do Smart
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Checklist -->
+                    <div class="glass-panel rounded-2xl p-4 border border-slate-800 text-xs space-y-2">
+                        <h4 class="font-semibold text-slate-300 flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-check text-emerald-400"></i> Validação do Caso Smart
+                        </h4>
+                        <ul class="space-y-1.5 font-mono text-[11px] text-slate-400">
+                            <li id="chk-cliente" class="flex items-center gap-2 text-slate-500"><i class="fa-solid fa-circle-xmark"></i> Registro do Cliente</li>
+                            <li id="chk-device" class="flex items-center gap-2 text-slate-500"><i class="fa-solid fa-circle-xmark"></i> Adquirente, Versão, Conexão e Modelo</li>
+                            <li id="chk-header" class="flex items-center gap-2 text-slate-500"><i class="fa-solid fa-circle-xmark"></i> Cabeçalho Smart > Caminho: Resumo</li>
+                            <li id="chk-chars" class="flex items-center gap-2 text-slate-500"><i class="fa-solid fa-circle-xmark"></i> Resumo dentro do limite (&le; 180 chars)</li>
+                            <li id="chk-desc" class="flex items-center gap-2 text-slate-500"><i class="fa-solid fa-circle-xmark"></i> Descrição com itens 1 - e 1.1 -</li>
+                            <li id="chk-passos" class="flex items-center gap-2 text-slate-500"><i class="fa-solid fa-circle-xmark"></i> Passos a reproduzir (1-, 2-)</li>
+                            <li id="chk-evidencia" class="flex items-center gap-2 text-slate-500"><i class="fa-solid fa-circle-xmark"></i> Evidência anexada (Print/Vídeo/Discord)</li>
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 bg-cyan-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 z-50">
+        <i class="fa-solid fa-circle-check text-lg"></i>
+        <span id="toast-message" class="text-xs font-semibold">Copiado com sucesso!</span>
+    </div>
+
+    <script>
+        // Mapeamento estrito de adquirentes e modelos informados
+        const ADQUIRENTES_CONFIG = {
+            "Playstore": {
+                versao: "8.0.0.0",
+                conexao: "Wi-Fi + 4G",
+                modelos: ["Smartphone Android"]
+            },
+            "Rede": {
+                versao: "8.0.0.0",
+                conexao: "Wi-Fi + 4G",
+                modelos: ["L400", "N960K"]
+            },
+            "Stone": {
+                versao: "8.0.0.0",
+                conexao: "Wi-Fi + 4G",
+                modelos: ["L400", "P2", "GPOS700X", "A8", "T8", "L300", "P2 A11", "GPOS730"]
+            },
+            "Pagbank": {
+                versao: "8.0.0.0",
+                conexao: "Wi-Fi + 4G",
+                modelos: ["P2", "A50", "A920", "A930", "SK800"]
+            },
+            "Cielo": {
+                versao: "8.0.0.0",
+                conexao: "Wi-Fi + 4G",
+                modelos: ["Lio v3", "L400", "L300", "DX8000", "GPOS720"]
+            },
+            "Getnet": {
+                versao: "8.0.0.0",
+                conexao: "Wi-Fi + 4G",
+                modelos: ["P3", "P2", "DX8000", "A8", "N920"]
+            },
+            "Safrapay": {
+                versao: "7.0.1.0",
+                conexao: "Wi-Fi",
+                modelos: ["P3", "A8", "P2"]
+            },
+            "Sicoob/Sipag": {
+                versao: "7.0.1.0",
+                conexao: "Wi-Fi + 4G",
+                modelos: ["DX8000", "P2", "X990", "X990 Plus", "X990 Pro"]
+            },
+            "Fiserv Caixa/Bin/Sicredi": {
+                versao: "6.1.6.0",
+                conexao: "Wi-Fi + 4G",
+                modelos: ["DX8000", "P2"]
+            },
+            "Mercado Pago": {
+                versao: "7.0.1.0",
+                conexao: "Wi-Fi + 4G",
+                modelos: ["N950"]
+            },
+            "Clover": {
+                versao: "8.0.0.0",
+                conexao: "Wi-Fi + 4G",
+                modelos: ["Clover Flex 3 (C405)"]
+            },
+            "Quickpay": {
+                versao: "6.0.7.0",
+                conexao: "Wi-Fi + 4G",
+                modelos: ["GPOS720", "A910"]
+            }
+        };
+
+        let descGroups = [];
+        let stepsList = [];
+
+        window.onload = function() {
+            loadSmartExample();
+        };
+
+        function handleAdquirenteChange(preferredModel = null) {
+            const adq = document.getElementById('input-adquirente').value;
+            const badge = document.getElementById('adquirente-badge');
+            const modeloSelect = document.getElementById('input-modelo');
+
+            modeloSelect.innerHTML = '';
+
+            if (adq && ADQUIRENTES_CONFIG[adq]) {
+                const config = ADQUIRENTES_CONFIG[adq];
+                document.getElementById('input-versao').value = config.versao;
+                document.getElementById('input-conexao').value = config.conexao;
+
+                badge.innerText = `Homologado v${config.versao}`;
+                badge.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
+
+                // Adiciona opção padrão de seleção
+                const placeholderOpt = document.createElement('option');
+                placeholderOpt.value = "";
+                placeholderOpt.textContent = "Selecione o modelo homologado...";
+                modeloSelect.appendChild(placeholderOpt);
+
+                // Preenche os modelos exclusivos da adquirente
+                config.modelos.forEach(mod => {
+                    const opt = document.createElement('option');
+                    opt.value = mod;
+                    opt.textContent = mod;
+                    if (preferredModel && preferredModel === mod) {
+                        opt.selected = true;
+                    }
+                    modeloSelect.appendChild(opt);
+                });
+
+                // Se houver apenas 1 modelo (ex: Playstore, Mercado Pago, Clover), auto-seleciona
+                if (!preferredModel && config.modelos.length === 1) {
+                    modeloSelect.value = config.modelos[0];
+                }
+            } else {
+                badge.innerText = "Selecione a Adquirência";
+                badge.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700";
+                
+                const opt = document.createElement('option');
+                opt.value = "";
+                opt.textContent = "Selecione a adquirência primeiro...";
+                modeloSelect.appendChild(opt);
+            }
+
+            updateScript();
+        }
+
+        function renderDescGroups() {
+            const container = document.getElementById('desc-container');
+            container.innerHTML = '';
+
+            descGroups.forEach((group, gIdx) => {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'p-3.5 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2 text-xs';
+                
+                let subsHtml = group.subs.map((sub, sIdx) => `
+                    <div class="flex items-center gap-1.5 pl-3">
+                        <span class="text-slate-500 font-mono w-9 text-right">${gIdx + 1}.${sIdx + 1} -</span>
+                        <input type="text" value="${sub}" oninput="updateSubDesc(${gIdx}, ${sIdx}, this.value)" placeholder="Subpasso (ex: Ações > Converter Unidades)" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-200 outline-none text-xs">
+                        <button type="button" onclick="removeSubDesc(${gIdx}, ${sIdx})" class="text-slate-500 hover:text-rose-400 p-1" title="Remover Subpasso">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </button>
+                    </div>
+                `).join('');
+
+                groupDiv.innerHTML = `
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-bold text-cyan-400 font-mono text-sm">${gIdx + 1} -</span>
+                        <input type="text" value="${group.main}" oninput="updateMainDesc(${gIdx}, this.value)" placeholder="Descrição do ponto principal" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-100 outline-none text-xs font-medium">
+                        <button type="button" onclick="removeDescGroup(${gIdx})" class="text-slate-500 hover:text-rose-400 p-1" title="Remover Item">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-1.5 pt-1">
+                        ${subsHtml}
+                        <div class="pl-12 pt-1 flex items-center gap-3">
+                            <button type="button" onclick="addSubDesc(${gIdx})" class="text-[11px] text-cyan-400 hover:underline flex items-center gap-1">
+                                <i class="fa-solid fa-plus text-[10px]"></i> Adicionar Subpasso (${gIdx + 1}.${group.subs.length + 1})
+                            </button>
+                        </div>
+                    </div>
+                    <div class="pt-2 border-t border-slate-800/80">
+                        <label class="block text-[11px] text-slate-400 mb-1"><i class="fa-regular fa-image text-cyan-400 mr-1"></i> Imagem deste ponto (Markdown ![](URL) opcional):</label>
+                        <input type="text" value="${group.img || ''}" oninput="updateImgDesc(${gIdx}, this.value)" placeholder="https://hedgedoc.softhubs.com.br/uploads/..." class="w-full bg-slate-900/60 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-300 font-mono text-[11px] outline-none">
+                    </div>
+                `;
+                container.appendChild(groupDiv);
+            });
+
+            updateScript();
+        }
+
+        function addDescGroup() {
+            descGroups.push({ main: '', subs: [''], img: '' });
+            renderDescGroups();
+        }
+
+        function removeDescGroup(index) {
+            descGroups.splice(index, 1);
+            renderDescGroups();
+        }
+
+        function updateMainDesc(index, val) {
+            descGroups[index].main = val;
+            updateScript();
+        }
+
+        function updateImgDesc(index, val) {
+            descGroups[index].img = val;
+            updateScript();
+        }
+
+        function addSubDesc(groupIndex) {
+            descGroups[groupIndex].subs.push('');
+            renderDescGroups();
+        }
+
+        function removeSubDesc(groupIndex, subIndex) {
+            descGroups[groupIndex].subs.splice(subIndex, 1);
+            renderDescGroups();
+        }
+
+        function updateSubDesc(groupIndex, subIndex, val) {
+            descGroups[groupIndex].subs[subIndex] = val;
+            updateScript();
+        }
+
+        function renderSteps() {
+            const container = document.getElementById('steps-container');
+            container.innerHTML = '';
+
+            stepsList.forEach((step, index) => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'flex items-center gap-2';
+                stepDiv.innerHTML = `
+                    <span class="text-xs font-bold text-emerald-400 font-mono w-6 text-right">${index + 1}-</span>
+                    <input type="text" value="${step}" oninput="updateStepValue(${index}, this.value)" placeholder="Descreva o passo ${index + 1}" class="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl px-3 py-1.5 text-xs text-slate-100 placeholder-slate-600 outline-none">
+                    <button type="button" onclick="removeStep(${index})" class="text-slate-500 hover:text-rose-400 p-1.5 transition-colors" title="Remover Passo">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                `;
+                container.appendChild(stepDiv);
+            });
+
+            updateScript();
+        }
+
+        function updateStepValue(index, val) {
+            stepsList[index] = val;
+            updateScript();
+        }
+
+        function addStep() {
+            stepsList.push('');
+            renderSteps();
+            const inputs = document.getElementById('steps-container').querySelectorAll('input');
+            if (inputs.length > 0) {
+                inputs[inputs.length - 1].focus();
+            }
+        }
+
+        function removeStep(index) {
+            stepsList.splice(index, 1);
+            renderSteps();
+        }
+
+        function updateScript() {
+            const registro = document.getElementById('input-registro').value.trim();
+            const nome = document.getElementById('input-nome').value.trim();
+            const linkCliente = document.getElementById('input-link-cliente').value.trim();
+            const cnpj = document.getElementById('input-cnpj').value.trim();
+
+            const adquirente = document.getElementById('input-adquirente').value.trim();
+            const versao = document.getElementById('input-versao').value.trim();
+            const conexao = document.getElementById('input-conexao').value.trim();
+            const modelo = document.getElementById('input-modelo').value.trim();
+
+            const produto = "Smart";
+            let caminho = document.getElementById('input-caminho').value.trim();
+            let resumo = document.getElementById('input-resumo').value.trim();
+
+            const linkHedge = document.getElementById('input-link-hedgedoc').value.trim();
+            const printEv = document.getElementById('input-print').value.trim();
+            const videoEv = document.getElementById('input-video').value.trim();
+            const arqEv = document.getElementById('input-arquivo').value.trim();
+            const discordEv = document.getElementById('input-discord').value.trim();
+
+            if (caminho) {
+                caminho = caminho.replace(/\s*>\s*/g, '>');
+            }
+
+            const charCount = resumo.length;
+            const counterEl = document.getElementById('resumo-counter');
+            counterEl.innerText = `${charCount} / 180`;
+            if (charCount > 180) {
+                counterEl.className = "text-[11px] font-mono text-rose-400 font-bold";
+            } else {
+                counterEl.className = "text-[11px] font-mono text-slate-400";
+            }
+
+            // 1) Cabeçalho: Smart > Caminho: Resumo
+            const camText = caminho || 'Não informado';
+            const resText = resumo || 'Não informado';
+            const headerLine = `${produto} > ${camText}: ${resText}`;
+
+            // 2) Descrição detalhada
+            let descLines = [];
+            descGroups.forEach((group, gIdx) => {
+                const mainText = group.main.trim();
+                if (mainText) {
+                    descLines.push(`${gIdx + 1} - ${mainText}`);
+                    group.subs.forEach((sub, sIdx) => {
+                        if (sub.trim()) {
+                            descLines.push(`${gIdx + 1}.${sIdx + 1} - ${sub.trim()}`);
+                        }
+                    });
+                    if (group.img && group.img.trim()) {
+                        const imgUrl = group.img.trim();
+                        descLines.push(imgUrl.startsWith('![](') ? imgUrl : `![](${imgUrl})`);
+                    }
+                    descLines.push('');
+                }
+            });
+
+            const detailedDescText = descLines.length > 0 
+                ? descLines.join('\n').trim() 
+                : '1 - Não informado';
+
+            // 3) Passos a reproduzir
+            const validSteps = stepsList.filter(s => s.trim() !== '');
+            let stepsText = '';
+            if (validSteps.length > 0) {
+                stepsText = validSteps.map((s, i) => `${i + 1}- ${s.trim()}`).join('\n');
+            } else {
+                stepsText = '1- Não informado';
+            }
+
+            // 4) Evidências e Dados do Dispositivo
+            let dadosTerminal = [];
+            if (adquirente) dadosTerminal.push(`Adquirente: ${adquirente}`);
+            if (versao) dadosTerminal.push(`Versão Atual: ${versao}`);
+            if (conexao) dadosTerminal.push(`Conexão: ${conexao}`);
+            if (modelo) dadosTerminal.push(`Dispositivo: ${modelo}`);
+
+            let evidenciasList = [];
+            if (dadosTerminal.length > 0) evidenciasList.push(`[Terminal Smart] ${dadosTerminal.join(' | ')}`);
+            if (linkCliente) evidenciasList.push(linkCliente);
+            if (linkHedge) evidenciasList.push(linkHedge);
+            if (printEv) evidenciasList.push(printEv.startsWith('http') ? `[Print] ${printEv}` : printEv);
+            if (videoEv) evidenciasList.push(`[Vídeo] ${videoEv}`);
+            if (arqEv) evidenciasList.push(`[Arquivo] ${arqEv}`);
+            if (discordEv) evidenciasList.push(discordEv);
+
+            const evidenciasText = evidenciasList.length > 0 
+                ? evidenciasList.join('\n') 
+                : 'Não informado';
+
+            // Metadados do cliente
+            let clienteInfo = '';
+            if (registro || nome || cnpj) {
+                let infoItems = [];
+                if (registro) infoItems.push(`Registro: ${registro}`);
+                if (nome) infoItems.push(`Cliente: ${nome}`);
+                if (cnpj) infoItems.push(`CNPJ: ${cnpj}`);
+                clienteInfo = `<!-- Identificação: ${infoItems.join(' | ')} -->\n`;
+            }
+
+            // Faltou:
+            let missingQuestions = [];
+            if (!registro) missingQuestions.push("Qual é o número de registro do cliente?");
+            if (!adquirente) missingQuestions.push("Qual é a adquirência do Smart (Playstore, Rede, Stone, Cielo, etc.)?");
+            if (!versao) missingQuestions.push("Qual é a versão atual do Smart instalada?");
+            if (!conexao) missingQuestions.push("Qual é a conexão utilizada (Wi-Fi ou 4G)?");
+            if (!modelo) missingQuestions.push("Qual é o modelo do dispositivo POS homologado?");
+            if (!caminho) missingQuestions.push("Qual é o caminho em tela no Smart?");
+            if (!resumo) missingQuestions.push("Qual é a descrição resumida do ocorrido?");
+            if (validSteps.length === 0) missingQuestions.push("Quais são os passos a reproduzir no Smart?");
+            if (evidenciasList.length === 0) missingQuestions.push("Tem link das prints, vídeos ou conversa no Discord?");
+
+            let finalReport = `${clienteInfo}${headerLine}\n\n${detailedDescText}\n\n**Passos a reproduzir:**\n${stepsText}\n\n**Evidências:**\n${evidenciasText}`;
+
+            if (missingQuestions.length > 0) {
+                finalReport += `\n\nFaltou:\n` + missingQuestions.map(q => `- ${q}`).join('\n');
+            }
+
+            document.getElementById('output-script').value = finalReport;
+
+            updateQualityChecklist({
+                hasCliente: Boolean(registro),
+                hasDevice: Boolean(adquirente && versao && conexao && modelo),
+                hasCaminho: Boolean(caminho),
+                resumoValid: Boolean(resumo && resumo.length <= 180),
+                descValid: descLines.length > 0,
+                stepsValid: validSteps.length >= 2,
+                evidValid: evidenciasList.length > 0
+            });
+        }
+
+        function updateQualityChecklist(checks) {
+            updateChecklistItem('chk-cliente', checks.hasCliente, "Registro do Cliente");
+            updateChecklistItem('chk-device', checks.hasDevice, "Adquirente, Versão, Conexão e Modelo");
+            updateChecklistItem('chk-header', checks.hasCaminho, "Cabeçalho Smart > Caminho: Resumo");
+            updateChecklistItem('chk-chars', checks.resumoValid, "Resumo dentro do limite (<= 180 chars)");
+            updateChecklistItem('chk-desc', checks.descValid, "Descrição com itens 1 - e 1.1 -");
+            updateChecklistItem('chk-passos', checks.stepsValid, "Passos a reproduzir (1-, 2-)");
+            updateChecklistItem('chk-evidencia', checks.evidValid, "Evidência anexada (Print/Vídeo/Discord)");
+
+            let score = 0;
+            if (checks.hasCliente) score += 15;
+            if (checks.hasDevice) score += 15;
+            if (checks.hasCaminho) score += 15;
+            if (checks.resumoValid) score += 15;
+            if (checks.descValid) score += 15;
+            if (checks.stepsValid) score += 15;
+            if (checks.evidValid) score += 10;
+
+            const bar = document.getElementById('quality-bar');
+            const scoreText = document.getElementById('quality-score');
+
+            bar.style.width = score + '%';
+            scoreText.innerText = score + '%';
+
+            if (score <= 40) {
+                bar.className = "bg-rose-500 h-full rounded-full transition-all duration-500";
+                scoreText.className = "font-bold text-rose-400 min-w-[3rem]";
+            } else if (score <= 75) {
+                bar.className = "bg-amber-500 h-full rounded-full transition-all duration-500";
+                scoreText.className = "font-bold text-amber-400 min-w-[3rem]";
+            } else {
+                bar.className = "bg-cyan-500 h-full rounded-full transition-all duration-500";
+                scoreText.className = "font-bold text-cyan-400 min-w-[3rem]";
+            }
+        }
+
+        function updateChecklistItem(id, isValid, label) {
+            const el = document.getElementById(id);
+            if (isValid) {
+                el.className = "flex items-center gap-2 text-cyan-400 font-medium";
+                el.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${label}`;
+            } else {
+                el.className = "flex items-center gap-2 text-slate-500";
+                el.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${label}`;
+            }
+        }
+
+        function copyToClipboard() {
+            const textarea = document.getElementById('output-script');
+            textarea.select();
+            textarea.setSelectionRange(0, 99999);
+
+            try {
+                navigator.clipboard.writeText(textarea.value);
+                showToast("Relatório do Smart copiado com sucesso!");
+            } catch (err) {
+                document.execCommand('copy');
+                showToast("Relatório copiado!");
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = message;
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        function loadSmartExample() {
+            document.getElementById('input-registro').value = "58410";
+            document.getElementById('input-nome').value = "Restaurante Sabor & Arte";
+            document.getElementById('input-link-cliente').value = "https://saborarte.meusoftcom.com.br/";
+            document.getElementById('input-cnpj').value = "12.345.678/0001-99";
+
+            document.getElementById('input-adquirente').value = "Stone";
+            handleAdquirenteChange("L400");
+
+            document.getElementById('input-caminho').value = "Mesas>Comanda>Lançamento de Itens";
+            document.getElementById('input-resumo').value = "Ao selecionar observação personalizada no produto, o app do Smart fecha abruptamente.";
+
+            descGroups = [
+                {
+                    main: "Ao abrir o Smart e acessar o atendimento de mesa:",
+                    subs: ["Mesas > Mesa 04 > Adicionar Produto", "Selecionar produto com complementos"],
+                    img: "https://hedgedoc.softhubs.com.br/uploads/49851b87-39c8-4d08-9b08-fe6e293e1cb5.png"
+                },
+                {
+                    main: "Tentar incluir texto livre nas observações:",
+                    subs: ["Clicar no campo 'Observações'", "Digitar instrução personalizada e confirmar"],
+                    img: "https://hedgedoc.softhubs.com.br/uploads/d908358b-050f-4c3f-b7b4-1437d8e5497b.png"
+                },
+                {
+                    main: "Ao clicar em Confirmar Lançamento:",
+                    subs: ["O aplicativo fecha inesperadamente retornando para a tela inicial da maquininha"],
+                    img: "https://hedgedoc.softhubs.com.br/uploads/38ebb9c9-6809-4860-b948-aaa277fdbe98.png"
+                }
+            ];
+
+            stepsList = [
+                "Realizar login no aplicativo Smart",
+                "Acessar o mapa de mesas",
+                "Abrir a mesa 04",
+                "Selecionar o item com adicionais",
+                "Digitar uma observação e salvar"
+            ];
+
+            document.getElementById('input-link-hedgedoc').value = "https://hedgedoc.softhubs.com.br/smart-bug-obs";
+            document.getElementById('input-print').value = "https://hedgedoc.softhubs.com.br/uploads/smart-crash.png";
+            document.getElementById('input-video').value = "https://drive.google.com/file/d/smart-video-crash";
+            document.getElementById('input-arquivo').value = "https://cdn.discordapp.com/attachments/log-smart.txt";
+            document.getElementById('input-discord').value = "Discord: #smart-mobile > caso-obs-fechando";
+
+            renderDescGroups();
+            renderSteps();
+            showToast("Exemplo do Smart carregado!");
+        }
+
+        function loadTemplateBlank() {
+            document.getElementById('input-registro').value = "";
+            document.getElementById('input-nome').value = "";
+            document.getElementById('input-link-cliente').value = "";
+            document.getElementById('input-cnpj').value = "";
+
+            document.getElementById('input-adquirente').value = "";
+            handleAdquirenteChange();
+            document.getElementById('input-versao').value = "";
+            document.getElementById('input-conexao').value = "";
+
+            document.getElementById('input-caminho').value = "";
+            document.getElementById('input-resumo').value = "";
+
+            descGroups = [{ main: "", subs: [""], img: "" }];
+            stepsList = [""];
+
+            document.getElementById('input-link-hedgedoc').value = "";
+            document.getElementById('input-print').value = "";
+            document.getElementById('input-video').value = "";
+            document.getElementById('input-arquivo').value = "";
+            document.getElementById('input-discord').value = "";
+
+            renderDescGroups();
+            renderSteps();
+            showToast("Modelo em branco carregado.");
+        }
+
+        function clearForm() {
+            loadTemplateBlank();
+            showToast("Formulário limpo.");
+        }
+    </script>
+</body>
+</html>
