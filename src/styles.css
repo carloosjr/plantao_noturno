@@ -1852,19 +1852,31 @@ select.log-input {
   font-size: 13px;
 }
 
-.score-danger {
+.smart-progress-fill.score-danger {
   background-color: #ef4444;
-  color: #f87171;
 }
 
-.score-warning {
+.smart-progress-fill.score-warning {
   background-color: #f59e0b;
-  color: #fbbf24;
 }
 
-.score-success {
+.smart-progress-fill.score-success {
   background-color: #06b6d4;
+}
+
+.smart-quality-score.score-danger {
+  color: #f87171;
+  background: transparent;
+}
+
+.smart-quality-score.score-warning {
+  color: #fbbf24;
+  background: transparent;
+}
+
+.smart-quality-score.score-success {
   color: #22d3ee;
+  background: transparent;
 }
 
 /* 2-COLUMN LAYOUT */
