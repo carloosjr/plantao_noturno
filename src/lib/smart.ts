@@ -359,3 +359,70 @@ export function gerarRelatorioSmart(form: EstadoSmartForm): string {
 
   return finalReport;
 }
+
+export interface CasoSmartRecord extends EstadoSmartForm {
+  id: string;
+  score: number;
+  relatorioMarkdown: string;
+  createdAt: string;
+}
+
+export async function salvarCasoSmart(form: EstadoSmartForm): Promise<CasoSmartRecord> {
+  const checklist = validarChecklistSmart(form);
+  const relatorioMarkdown = gerarRelatorioSmart(form);
+
+  const payload = {
+    ...form,
+    score: checklist.score,
+    relatorioMarkdown,
+  };
+
+  const resposta = await fetch('/api/caso-smart', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  const texto = await resposta.text();
+  const corpo = texto ? JSON.parse(texto) : null;
+
+  if (!resposta.ok) {
+    throw new Error(corpo?.erro ?? `Falha ao salvar caso (${resposta.status}).`);
+  }
+
+  return corpo as CasoSmartRecord;
+}
+
+export async function listarCasosSmart(filtros?: { limit?: number; registro?: string }): Promise<CasoSmartRecord[]> {
+  const params = new URLSearchParams();
+  if (filtros?.limit) params.set('limit', String(filtros.limit));
+  if (filtros?.registro) params.set('registro', String(filtros.registro));
+
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const resposta = await fetch(`/api/caso-smart${query}`);
+
+  const texto = await resposta.text();
+  const corpo = texto ? JSON.parse(texto) : null;
+
+  if (!resposta.ok) {
+    throw new Error(corpo?.erro ?? `Falha ao buscar casos (${resposta.status}).`);
+  }
+
+  return (corpo ?? []) as CasoSmartRecord[];
+}
+
+export async function excluirCasoSmart(id: string): Promise<{ id: string }> {
+  const resposta = await fetch(`/api/caso-smart?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+
+  const texto = await resposta.text();
+  const corpo = texto ? JSON.parse(texto) : null;
+
+  if (!resposta.ok) {
+    throw new Error(corpo?.erro ?? `Falha ao excluir caso (${resposta.status}).`);
+  }
+
+  return corpo as { id: string };
+}
+

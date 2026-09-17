@@ -1,13 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ADQUIRENTES_CONFIG,
   CONEXOES_SMART,
   ESTADO_SMART_VAZIO,
   EXEMPLO_SMART,
+  excluirCasoSmart,
   gerarRelatorioSmart,
+  listarCasosSmart,
+  salvarCasoSmart,
   validarChecklistSmart,
+  type CasoSmartRecord,
   type EstadoSmartForm,
 } from '../lib/smart';
+import { formatarDataHora } from '../lib/format';
 import PageHeader from '../components/PageHeader';
 import Toast, { type Aviso } from '../components/Toast';
 
@@ -15,8 +20,33 @@ export default function CasoSmartPage() {
   const [form, setForm] = useState<EstadoSmartForm>(() => ({ ...EXEMPLO_SMART }));
   const [aviso, setAviso] = useState<Aviso | null>(null);
 
+  // Estados de persistência
+  const [casosSalvos, setCasosSalvos] = useState<CasoSmartRecord[]>([]);
+  const [carregandoSalvos, setCarregandoSalvos] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [excluindoId, setExcluindoId] = useState<string | null>(null);
+  const [filtroRegistro, setFiltroRegistro] = useState('');
+  const [expandirHistorico, setExpandirHistorico] = useState(true);
+
   const checklist = useMemo(() => validarChecklistSmart(form), [form]);
   const relatorioMarkdown = useMemo(() => gerarRelatorioSmart(form), [form]);
+
+  // Carregar casos salvos ao iniciar
+  async function carregarListaCasos() {
+    setCarregandoSalvos(true);
+    try {
+      const lista = await listarCasosSmart();
+      setCasosSalvos(lista);
+    } catch (err) {
+      console.error('Erro ao listar casos salvos do Supabase:', err);
+    } finally {
+      setCarregandoSalvos(false);
+    }
+  }
+
+  useEffect(() => {
+    carregarListaCasos();
+  }, []);
 
   // Handler para atualizar campos simples
   function alterar<K extends keyof EstadoSmartForm>(campo: K, valor: EstadoSmartForm[K]) {
@@ -190,20 +220,127 @@ export default function CasoSmartPage() {
     });
   }
 
-  // Copiar para clipboard
-  async function copiarRelatorio() {
+  // Salvar no banco Supabase
+  async function handleSalvarBanco() {
+    if (!form.registro.trim()) {
+      setAviso({
+        tipo: 'erro',
+        titulo: 'Registro obrigatório',
+        texto: 'Por favor, informe o número de registro do cliente antes de salvar.',
+      });
+      return;
+    }
+    if (!form.adquirente || !form.modelo || !form.versao) {
+      setAviso({
+        tipo: 'erro',
+        titulo: 'Dados do dispositivo incompletos',
+        texto: 'Selecione a adquirência, versão e modelo do dispositivo.',
+      });
+      return;
+    }
+    if (!form.caminho.trim() || !form.resumo.trim()) {
+      setAviso({
+        tipo: 'erro',
+        titulo: 'Cabeçalho obrigatório',
+        texto: 'Preencha o caminho em tela e a descrição resumida do ocorrido.',
+      });
+      return;
+    }
+
+    setSalvando(true);
     try {
-      await navigator.clipboard.writeText(relatorioMarkdown);
+      const salvo = await salvarCasoSmart(form);
+      setCasosSalvos((anteriores) => [salvo, ...anteriores.filter((c) => c.id !== salvo.id)]);
       setAviso({
         tipo: 'sucesso',
-        titulo: 'Copiado com sucesso!',
+        titulo: 'Caso salvo no Supabase!',
+        texto: `Caso do registro Nº ${salvo.registro} salvo com sucesso no banco de dados.`,
+      });
+    } catch (err) {
+      setAviso({
+        tipo: 'erro',
+        titulo: 'Erro ao salvar caso',
+        texto: err instanceof Error ? err.message : 'Não foi possível salvar o caso no banco.',
+      });
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  // Carregar caso salvo no formulário
+  function handleCarregarCaso(caso: CasoSmartRecord) {
+    setForm({
+      registro: caso.registro,
+      nome: caso.nome || '',
+      linkCliente: caso.linkCliente || '',
+      cnpj: caso.cnpj || '',
+      adquirente: caso.adquirente,
+      versao: caso.versao,
+      conexao: caso.conexao,
+      modelo: caso.modelo,
+      produto: caso.produto || 'Smart',
+      caminho: caso.caminho,
+      resumo: caso.resumo,
+      descricoes:
+        caso.descricoes && caso.descricoes.length > 0
+          ? caso.descricoes.map((d) => ({ ...d, subs: [...d.subs] }))
+          : [{ id: String(Date.now()), main: '', subs: [''], img: '' }],
+      passos: caso.passos && caso.passos.length > 0 ? [...caso.passos] : [''],
+      linkHedgedoc: caso.linkHedgedoc || '',
+      linkPrint: caso.linkPrint || '',
+      linkVideo: caso.linkVideo || '',
+      linkArquivo: caso.linkArquivo || '',
+      linkDiscord: caso.linkDiscord || '',
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    setAviso({
+      tipo: 'sucesso',
+      titulo: 'Caso carregado no formulário',
+      texto: `Dados do registro Nº ${caso.registro} carregados no formulário para edição.`,
+    });
+  }
+
+  // Excluir caso salvo
+  async function handleExcluirCaso(id: string, registro: string) {
+    if (!window.confirm(`Deseja realmente remover o caso do registro Nº ${registro} do banco de dados?`)) {
+      return;
+    }
+
+    setExcluindoId(id);
+    try {
+      await excluirCasoSmart(id);
+      setCasosSalvos((anteriores) => anteriores.filter((c) => c.id !== id));
+      setAviso({
+        tipo: 'sucesso',
+        titulo: 'Caso excluído',
+        texto: `Caso do registro Nº ${registro} removido do banco de dados.`,
+      });
+    } catch (err) {
+      setAviso({
+        tipo: 'erro',
+        titulo: 'Erro ao excluir',
+        texto: err instanceof Error ? err.message : 'Não foi possível excluir o caso.',
+      });
+    } finally {
+      setExcluindoId(null);
+    }
+  }
+
+  // Copiar para clipboard
+  async function copiarTexto(texto: string, titulo = 'Copiado com sucesso!') {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setAviso({
+        tipo: 'sucesso',
+        titulo,
         texto: 'Relatório do Smart copiado para a área de transferência.',
       });
     } catch {
-      // Fallback
       setAviso({
         tipo: 'sucesso',
-        titulo: 'Relatório pronto',
+        titulo,
         texto: 'Selecione o texto e copie manualmente com Ctrl+C.',
       });
     }
@@ -220,6 +357,19 @@ export default function CasoSmartPage() {
         ? 'score-warning'
         : 'score-success';
 
+  const casosFiltrados = useMemo(() => {
+    if (!filtroRegistro.trim()) return casosSalvos;
+    const termo = filtroRegistro.trim().toLowerCase();
+    return casosSalvos.filter(
+      (c) =>
+        c.registro.includes(termo) ||
+        (c.nome && c.nome.toLowerCase().includes(termo)) ||
+        c.adquirente.toLowerCase().includes(termo) ||
+        c.modelo.toLowerCase().includes(termo) ||
+        c.resumo.toLowerCase().includes(termo)
+    );
+  }, [casosSalvos, filtroRegistro]);
+
   return (
     <div className="smart-page">
       <PageHeader
@@ -230,6 +380,15 @@ export default function CasoSmartPage() {
           <div className="smart-actions-header">
             <button
               type="button"
+              className="btn btn-primary btn-sm highlight-spark"
+              onClick={handleSalvarBanco}
+              disabled={salvando}
+              title="Salvar este caso no banco de dados do Supabase"
+            >
+              {salvando ? '⏳ Salvando no Banco...' : '💾 Salvar Caso no Banco'}
+            </button>
+            <button
+              type="button"
               className="btn btn-secondary btn-sm"
               onClick={carregarModeloVazio}
               title="Gerar modelo em branco"
@@ -238,11 +397,11 @@ export default function CasoSmartPage() {
             </button>
             <button
               type="button"
-              className="btn btn-secondary btn-sm highlight-spark"
+              className="btn btn-secondary btn-sm"
               onClick={carregarExemplo}
               title="Carregar exemplo padrão"
             >
-              ✨ Carregar Exemplo Modelo
+              ✨ Carregar Exemplo
             </button>
             <button
               type="button"
@@ -756,19 +915,29 @@ export default function CasoSmartPage() {
                 <textarea
                   className="smart-output-textarea"
                   readOnly
-                  rows={18}
+                  rows={16}
                   value={relatorioMarkdown}
                   aria-label="Relatório Smart Formatado"
                   onFocus={(e) => e.target.select()}
                 />
 
-                <button
-                  type="button"
-                  className="btn btn-primary smart-copy-btn"
-                  onClick={copiarRelatorio}
-                >
-                  📋 Copiar Relatório do Smart
-                </button>
+                <div className="smart-preview-buttons">
+                  <button
+                    type="button"
+                    className="btn btn-primary smart-copy-btn"
+                    onClick={() => copiarTexto(relatorioMarkdown)}
+                  >
+                    📋 Copiar Relatório do Smart
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary smart-save-btn"
+                    onClick={handleSalvarBanco}
+                    disabled={salvando}
+                  >
+                    {salvando ? '⏳ Gravando...' : '💾 Salvar no Banco Supabase'}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -813,6 +982,134 @@ export default function CasoSmartPage() {
           </div>
         </div>
       </div>
+
+      {/* SEÇÃO DE HISTÓRICO DE CASOS SALVOS NO BANCO SUPABASE */}
+      <section className="smart-history-section">
+        <div className="smart-history-header">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="smart-history-toggle"
+              onClick={() => setExpandirHistorico((e) => !e)}
+              aria-expanded={expandirHistorico}
+            >
+              <span className="smart-history-arrow">{expandirHistorico ? '▼' : '▶'}</span>
+              <span className="smart-history-icon" aria-hidden="true">📂</span>
+              <h2 className="smart-history-title">
+                Casos Smart Salvos no Supabase
+              </h2>
+            </button>
+            <span className="smart-history-count">
+              {casosFiltrados.length} {casosFiltrados.length === 1 ? 'registro' : 'registros'}
+            </span>
+          </div>
+
+          <div className="smart-history-filters">
+            <input
+              type="text"
+              className="smart-history-search"
+              placeholder="Filtrar por registro, cliente, adquirente..."
+              value={filtroRegistro}
+              onChange={(e) => setFiltroRegistro(e.target.value)}
+              aria-label="Filtrar casos salvos"
+            />
+            <button
+              type="button"
+              className="btn btn-secondary btn-xs"
+              onClick={carregarListaCasos}
+              disabled={carregandoSalvos}
+              title="Atualizar lista do banco"
+            >
+              {carregandoSalvos ? '🔄 Atualizando...' : '🔄 Atualizar'}
+            </button>
+          </div>
+        </div>
+
+        {expandirHistorico ? (
+          <div className="smart-history-content">
+            {carregandoSalvos && casosSalvos.length === 0 ? (
+              <div className="smart-history-loading">Carregando casos do banco de dados...</div>
+            ) : casosFiltrados.length === 0 ? (
+              <div className="smart-history-empty">
+                <span className="smart-empty-icon" aria-hidden="true">📭</span>
+                <p>Nenhum caso Smart encontrado no banco de dados.</p>
+                <span className="smart-empty-hint">
+                  Preencha o formulário acima e clique em <strong>💾 Salvar Caso no Banco</strong> para gravar.
+                </span>
+              </div>
+            ) : (
+              <div className="smart-history-grid">
+                {casosFiltrados.map((caso) => {
+                  const scoreClasse =
+                    caso.score <= 40
+                      ? 'score-danger'
+                      : caso.score <= 75
+                        ? 'score-warning'
+                        : 'score-success';
+
+                  return (
+                    <div className="smart-history-card" key={caso.id}>
+                      <div className="smart-history-card-header">
+                        <div className="smart-history-card-reg">
+                          <span className="smart-reg-badge">Nº {caso.registro}</span>
+                          {caso.nome ? <span className="smart-card-client">{caso.nome}</span> : null}
+                        </div>
+                        <div className="smart-history-card-meta">
+                          <span className={`smart-card-score ${scoreClasse}`}>
+                            {caso.score}% qualidade
+                          </span>
+                          <span className="smart-card-date">{formatarDataHora(caso.createdAt)}</span>
+                        </div>
+                      </div>
+
+                      <div className="smart-history-card-body">
+                        <div className="smart-card-device-info">
+                          <span className="smart-card-tag">{caso.adquirente}</span>
+                          <span className="smart-card-tag">{caso.modelo}</span>
+                          <span className="smart-card-tag font-mono">v{caso.versao}</span>
+                          <span className="smart-card-tag">{caso.conexao}</span>
+                        </div>
+
+                        <div className="smart-card-summary">
+                          <strong>{caso.caminho}:</strong> {caso.resumo}
+                        </div>
+                      </div>
+
+                      <div className="smart-history-card-footer">
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-xs"
+                          onClick={() => handleCarregarCaso(caso)}
+                          title="Carregar todos os dados deste caso no formulário para edição"
+                        >
+                          📥 Carregar no Formulário
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-xs"
+                          onClick={() => copiarTexto(caso.relatorioMarkdown, 'Relatório copiado!')}
+                          title="Copiar relatório markdown pronto"
+                        >
+                          📋 Copiar Relatório
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-danger-soft btn-xs"
+                          onClick={() => handleExcluirCaso(caso.id, caso.registro)}
+                          disabled={excluindoId === caso.id}
+                          title="Excluir do banco"
+                        >
+                          {excluindoId === caso.id ? 'Excluindo...' : '🗑️ Excluir'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : null}
+      </section>
 
       {aviso ? <Toast aviso={aviso} onFechar={() => setAviso(null)} /> : null}
     </div>

@@ -31,6 +31,7 @@ export const TABELA_ATENDIMENTOS_GRUPO = 'plantaonoturno_atendimentos_grupo';
 export const TABELA_FILAS = 'plantaonoturno_filas';
 export const TABELA_AGENDA_INDEVIDA = 'plantaonoturno_agenda_indevida';
 export const TABELA_LIGACOES = 'plantaonoturno_ligacoes';
+export const TABELA_CASOS_SMART = 'plantaonoturno_casos_smart';
 
 export const FUNCAO_OBTER_TURNO = 'plantaonoturno_obter_turno';
 export const FUNCAO_DEFINIR_TAREFA = 'plantaonoturno_definir_tarefa';
