@@ -81,7 +81,12 @@ export interface DescricaoGrupo {
   img: string;
 }
 
+export type TipoCasoSmart = 'Bug' | 'Melhoria';
+
 export interface EstadoSmartForm {
+  // Tipo de Demanda
+  tipo: TipoCasoSmart;
+
   // Identificação do Cliente & Caso
   numeroCaso: string;
   registro: string;
@@ -115,6 +120,7 @@ export interface EstadoSmartForm {
 }
 
 export const ESTADO_SMART_VAZIO: EstadoSmartForm = {
+  tipo: 'Bug',
   numeroCaso: '',
   registro: '',
   nome: '',
@@ -141,6 +147,7 @@ export const ESTADO_SMART_VAZIO: EstadoSmartForm = {
 };
 
 export const EXEMPLO_SMART: EstadoSmartForm = {
+  tipo: 'Bug',
   numeroCaso: '104829',
   registro: '58410',
   nome: 'Restaurante Sabor & Arte',
@@ -276,12 +283,14 @@ export function gerarRelatorioSmart(form: EstadoSmartForm): string {
 
   // 1) Metadados do cliente e caso
   let clienteInfo = '';
-  if (numeroCaso || registro || nome || cnpj) {
+  const tipo = form.tipo || 'Bug';
+  if (numeroCaso || registro || nome || cnpj || tipo) {
     const infoItems: string[] = [];
     if (numeroCaso) infoItems.push(`Caso: #${numeroCaso}`);
     if (registro) infoItems.push(`Registro: ${registro}`);
     if (nome) infoItems.push(`Cliente: ${nome}`);
     if (cnpj) infoItems.push(`CNPJ: ${cnpj}`);
+    if (tipo) infoItems.push(`Tipo: ${tipo}`);
     clienteInfo = `<!-- Identificação: ${infoItems.join(' | ')} -->\n`;
   }
 
@@ -457,6 +466,9 @@ export interface EstatisticasSmart {
   versaoTop: { nome: string; quantidade: number; percentual: number } | null;
   taxaEvidencias: number;
   comEvidenciasCount: number;
+  bugsCount: number;
+  melhoriasCount: number;
+  porTipo: ItemEstatisticaSmart[];
   porAdquirente: ItemEstatisticaSmart[];
   porVersao: ItemEstatisticaSmart[];
   porConexao: ItemEstatisticaSmart[];
@@ -492,6 +504,12 @@ export function calcularEstatisticasSmart(casos: CasoSmartRecord[]): Estatistica
       versaoTop: null,
       taxaEvidencias: 0,
       comEvidenciasCount: 0,
+      bugsCount: 0,
+      melhoriasCount: 0,
+      porTipo: [
+        { rotulo: 'Bug', quantidade: 0, percentual: 0 },
+        { rotulo: 'Melhoria', quantidade: 0, percentual: 0 },
+      ],
       porAdquirente: [],
       porVersao: [],
       porConexao: [],
@@ -599,6 +617,22 @@ export function calcularEstatisticasSmart(casos: CasoSmartRecord[]): Estatistica
     },
   ];
 
+  // Bugs vs Melhorias
+  const bugsCount = casos.filter((c) => c.tipo !== 'Melhoria').length;
+  const melhoriasCount = casos.filter((c) => c.tipo === 'Melhoria').length;
+  const porTipo: ItemEstatisticaSmart[] = [
+    {
+      rotulo: 'Bug',
+      quantidade: bugsCount,
+      percentual: Math.round((bugsCount / total) * 1000) / 10,
+    },
+    {
+      rotulo: 'Melhoria',
+      quantidade: melhoriasCount,
+      percentual: Math.round((melhoriasCount / total) * 1000) / 10,
+    },
+  ];
+
   return {
     total,
     scoreMedio,
@@ -608,6 +642,9 @@ export function calcularEstatisticasSmart(casos: CasoSmartRecord[]): Estatistica
     versaoTop,
     taxaEvidencias,
     comEvidenciasCount: comEvidencias.length,
+    bugsCount,
+    melhoriasCount,
+    porTipo,
     porAdquirente,
     porVersao,
     porConexao,
@@ -625,6 +662,7 @@ function celulaCsv(valor: unknown): string {
 export function gerarCsvCasosSmart(casos: CasoSmartRecord[]): string {
   const colunas = [
     'Data/Hora',
+    'Tipo',
     'NumeroCaso',
     'Registro',
     'Cliente',
@@ -652,6 +690,7 @@ export function gerarCsvCasosSmart(casos: CasoSmartRecord[]): string {
     linhas.push(
       [
         c.createdAt || '',
+        c.tipo || 'Bug',
         c.numeroCaso || '',
         c.registro || '',
         c.nome || '',

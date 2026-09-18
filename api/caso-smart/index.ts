@@ -11,6 +11,7 @@ export interface DescricaoGrupoPayload {
 
 export interface CasoSmartRow {
   id: string;
+  tipo?: string | null;
   numero_caso?: number | string | null;
   cliente_registro: number | string;
   cliente_nome: string | null;
@@ -41,6 +42,7 @@ const COLUNAS_CASO_SMART = '*';
 function paraCasoSmart(row: CasoSmartRow) {
   return {
     id: row.id,
+    tipo: row.tipo || 'Bug',
     numeroCaso: row.numero_caso ? String(row.numero_caso) : '',
     registro: String(row.cliente_registro),
     nome: row.cliente_nome ?? '',
@@ -87,6 +89,9 @@ async function criar(req: VercelRequest, res: VercelResponse): Promise<void> {
     return erro(res, 400, 'Informe o registro do cliente (somente números positivos).');
   }
 
+  const tipoBruto = typeof corpo.tipo === 'string' ? corpo.tipo.trim() : '';
+  const tipo = tipoBruto === 'Melhoria' ? 'Melhoria' : 'Bug';
+
   const numeroCasoBruto = typeof corpo.numeroCaso === 'string' ? corpo.numeroCaso.trim() : String(corpo.numeroCaso ?? '');
   const numeroCasoNum = Number(numeroCasoBruto.replace(/\D/g, ''));
   const numeroCaso = Number.isInteger(numeroCasoNum) && numeroCasoNum > 0 ? numeroCasoNum : null;
@@ -123,6 +128,7 @@ async function criar(req: VercelRequest, res: VercelResponse): Promise<void> {
   const relatorioMarkdown = typeof corpo.relatorioMarkdown === 'string' ? corpo.relatorioMarkdown : '';
 
   const objetoInsercao: Record<string, unknown> = {
+    tipo,
     cliente_registro: registro,
     cliente_nome: nome,
     link_cliente: linkCliente,
@@ -155,14 +161,23 @@ async function criar(req: VercelRequest, res: VercelResponse): Promise<void> {
     .select(COLUNAS_CASO_SMART)
     .single<CasoSmartRow>();
 
-  if (insercao.error && numeroCaso !== null && insercao.error.message.includes('numero_caso')) {
-    // Fallback caso a coluna ainda não exista
-    delete objetoInsercao.numero_caso;
-    insercao = await getSupabase()
-      .from(TABELA_CASOS_SMART)
-      .insert(objetoInsercao)
-      .select(COLUNAS_CASO_SMART)
-      .single<CasoSmartRow>();
+  if (insercao.error) {
+    let precisouAjustar = false;
+    if (numeroCaso !== null && insercao.error.message.includes('numero_caso')) {
+      delete objetoInsercao.numero_caso;
+      precisouAjustar = true;
+    }
+    if (insercao.error.message.includes('tipo')) {
+      delete objetoInsercao.tipo;
+      precisouAjustar = true;
+    }
+    if (precisouAjustar) {
+      insercao = await getSupabase()
+        .from(TABELA_CASOS_SMART)
+        .insert(objetoInsercao)
+        .select(COLUNAS_CASO_SMART)
+        .single<CasoSmartRow>();
+    }
   }
 
   if (insercao.error || !insercao.data) {

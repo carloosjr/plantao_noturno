@@ -280,6 +280,7 @@ export default function CasoSmartPage() {
   // Carregar caso salvo no formulário
   function handleCarregarCaso(caso: CasoSmartRecord) {
     setForm({
+      tipo: caso.tipo === 'Melhoria' ? 'Melhoria' : 'Bug',
       numeroCaso: caso.numeroCaso || '',
       registro: caso.registro,
       nome: caso.nome || '',
@@ -657,14 +658,25 @@ export default function CasoSmartPage() {
 
             <div className="smart-grid-2">
               <div>
-                <label className="smart-label">Produto</label>
-                <input
-                  type="text"
-                  value="Smart"
-                  readOnly
-                  disabled
-                  className="input-readonly-accent"
-                />
+                <label className="smart-label">Tipo de Demanda <span className="req">*</span></label>
+                <div className="smart-type-buttons">
+                  <button
+                    type="button"
+                    className={`smart-type-btn ${form.tipo === 'Bug' ? 'active bug' : ''}`}
+                    onClick={() => alterar('tipo', 'Bug')}
+                  >
+                    <span className="smart-type-icon">🐛</span>
+                    <span>Bug / Falha</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`smart-type-btn ${form.tipo === 'Melhoria' ? 'active melhoria' : ''}`}
+                    onClick={() => alterar('tipo', 'Melhoria')}
+                  >
+                    <span className="smart-type-icon">💡</span>
+                    <span>Melhoria</span>
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -1105,6 +1117,9 @@ export default function CasoSmartPage() {
 
                       <div className="smart-history-card-body">
                         <div className="smart-card-device-info">
+                          <span className={`smart-badge-tipo ${caso.tipo === 'Melhoria' ? 'melhoria' : 'bug'}`}>
+                            {caso.tipo === 'Melhoria' ? '💡 Melhoria' : '🐛 Bug'}
+                          </span>
                           <span className="smart-card-tag">{caso.adquirente}</span>
                           <span className="smart-card-tag">{caso.modelo}</span>
                           <span className="smart-card-tag font-mono">v{caso.versao}</span>

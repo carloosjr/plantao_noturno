@@ -30,6 +30,7 @@ export default function SmartDashboardPage() {
 
   // Filtros
   const [periodo, setPeriodo] = useState<FiltroPeriodoSmart>('30');
+  const [filtroTipo, setFiltroTipo] = useState<'todos' | 'Bug' | 'Melhoria'>('todos');
   const [filtroAdquirente, setFiltroAdquirente] = useState<string>('todas');
   const [filtroConexao, setFiltroConexao] = useState<string>('todas');
   const [filtroQualidade, setFiltroQualidade] = useState<'todas' | 'excelente' | 'bom' | 'critico'>('todas');
@@ -69,9 +70,14 @@ export default function SmartDashboardPage() {
     return calcularEstatisticasSmart(casosNoPeriodo);
   }, [casosNoPeriodo]);
 
-  // 3) Casos filtrados pelos controles adicionais (adquirente, qualidade, conexão, busca)
+  // 3) Casos filtrados pelos controles adicionais (tipo, adquirente, qualidade, conexão, busca)
   const casosFiltrados = useMemo(() => {
     return casosNoPeriodo.filter((c) => {
+      // Filtro Tipo (Bug vs Melhoria)
+      if (filtroTipo !== 'todos' && (c.tipo || 'Bug') !== filtroTipo) {
+        return false;
+      }
+
       // Filtro Adquirente
       if (filtroAdquirente !== 'todas' && c.adquirente !== filtroAdquirente) {
         return false;
@@ -91,6 +97,7 @@ export default function SmartDashboardPage() {
       if (busca.trim()) {
         const termo = busca.toLowerCase().trim();
         const textoCompleto = [
+          c.tipo,
           c.numeroCaso,
           c.registro,
           c.nome,
@@ -112,7 +119,7 @@ export default function SmartDashboardPage() {
 
       return true;
     });
-  }, [casosNoPeriodo, filtroAdquirente, filtroConexao, filtroQualidade, busca]);
+  }, [casosNoPeriodo, filtroTipo, filtroAdquirente, filtroConexao, filtroQualidade, busca]);
 
   // Handler de cópia
   async function copiarRelatorio(caso: CasoSmartRecord) {
@@ -187,12 +194,14 @@ export default function SmartDashboardPage() {
 
   // Limpar filtros
   const temFiltrosAtivos =
+    filtroTipo !== 'todos' ||
     filtroAdquirente !== 'todas' ||
     filtroConexao !== 'todas' ||
     filtroQualidade !== 'todas' ||
     busca.trim() !== '';
 
   function limparFiltros() {
+    setFiltroTipo('todos');
     setFiltroAdquirente('todas');
     setFiltroConexao('todas');
     setFiltroQualidade('todas');
@@ -287,7 +296,7 @@ export default function SmartDashboardPage() {
           </div>
           <div className="metric-value font-mono">{stats.total.toLocaleString('pt-BR')}</div>
           <div className="metric-foot">
-            {periodo === 'tudo' ? 'Histórico geral' : `Nos últimos ${periodo} dias`}
+            {periodo === 'tudo' ? 'Histórico geral' : `Últimos ${periodo} dias`} • {stats.bugsCount} 🐛 / {stats.melhoriasCount} 💡
           </div>
         </article>
 
@@ -497,6 +506,19 @@ export default function SmartDashboardPage() {
             <div className="smart-filter-select-group">
               <select
                 className="select select-sm"
+                value={filtroTipo}
+                onChange={(e) =>
+                  setFiltroTipo(e.target.value as 'todos' | 'Bug' | 'Melhoria')
+                }
+                aria-label="Filtrar por tipo de demanda"
+              >
+                <option value="todos">Todos os Tipos ({stats.total})</option>
+                <option value="Bug">🐛 Apenas Bugs ({stats.bugsCount})</option>
+                <option value="Melhoria">💡 Apenas Melhorias ({stats.melhoriasCount})</option>
+              </select>
+
+              <select
+                className="select select-sm"
                 value={filtroAdquirente}
                 onChange={(e) => setFiltroAdquirente(e.target.value)}
                 aria-label="Filtrar por adquirente"
@@ -607,6 +629,9 @@ export default function SmartDashboardPage() {
                       <td>
                         <div className="smart-client-cell">
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span className={`smart-badge-tipo ${c.tipo === 'Melhoria' ? 'melhoria' : 'bug'}`}>
+                              {c.tipo === 'Melhoria' ? '💡 Melhoria' : '🐛 Bug'}
+                            </span>
                             {c.numeroCaso ? (
                               <span
                                 className="smart-reg-badge font-mono"
@@ -774,6 +799,9 @@ export default function SmartDashboardPage() {
             <div className="smart-modal-body">
               {/* Badges de Topo */}
               <div className="smart-modal-badges">
+                <span className={`smart-badge-tipo ${casoSelecionado.tipo === 'Melhoria' ? 'melhoria' : 'bug'}`}>
+                  {casoSelecionado.tipo === 'Melhoria' ? '💡 Melhoria' : '🐛 Bug'}
+                </span>
                 {casoSelecionado.numeroCaso ? (
                   <span
                     className="smart-reg-badge font-mono"
