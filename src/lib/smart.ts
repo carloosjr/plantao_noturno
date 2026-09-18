@@ -395,7 +395,8 @@ export async function salvarCasoSmart(form: EstadoSmartForm): Promise<CasoSmartR
 
 export async function listarCasosSmart(filtros?: { limit?: number; registro?: string }): Promise<CasoSmartRecord[]> {
   const params = new URLSearchParams();
-  if (filtros?.limit) params.set('limit', String(filtros.limit));
+  const limite = filtros?.limit ?? 500;
+  params.set('limit', String(limite));
   if (filtros?.registro) params.set('registro', String(filtros.registro));
 
   const query = params.toString() ? `?${params.toString()}` : '';
@@ -425,4 +426,263 @@ export async function excluirCasoSmart(id: string): Promise<{ id: string }> {
 
   return corpo as { id: string };
 }
+
+export type FiltroPeriodoSmart = '7' | '15' | '30' | '90' | 'tudo';
+
+export interface ItemEstatisticaSmart {
+  rotulo: string;
+  quantidade: number;
+  percentual: number;
+}
+
+export interface FaixaQualidadeSmart {
+  chave: 'excelente' | 'bom' | 'critico';
+  rotulo: string;
+  quantidade: number;
+  percentual: number;
+  cor: string;
+}
+
+export interface EstatisticasSmart {
+  total: number;
+  scoreMedio: number;
+  clientesUnicos: number;
+  adquirenteTop: { nome: string; quantidade: number; percentual: number } | null;
+  modeloTop: { nome: string; quantidade: number; percentual: number } | null;
+  versaoTop: { nome: string; quantidade: number; percentual: number } | null;
+  taxaEvidencias: number;
+  comEvidenciasCount: number;
+  porAdquirente: ItemEstatisticaSmart[];
+  porVersao: ItemEstatisticaSmart[];
+  porConexao: ItemEstatisticaSmart[];
+  porModelo: ItemEstatisticaSmart[];
+  porCaminho: ItemEstatisticaSmart[];
+  faixasQualidade: FaixaQualidadeSmart[];
+}
+
+export function filtrarCasosPorPeriodo(casos: CasoSmartRecord[], periodo: FiltroPeriodoSmart): CasoSmartRecord[] {
+  if (periodo === 'tudo') return casos;
+  const dias = Number(periodo);
+  if (isNaN(dias) || dias <= 0) return casos;
+
+  const agora = new Date();
+  const limiteData = new Date(agora.getTime() - dias * 24 * 60 * 60 * 1000);
+
+  return casos.filter((c) => {
+    if (!c.createdAt) return true;
+    const dataCaso = new Date(c.createdAt);
+    return dataCaso >= limiteData;
+  });
+}
+
+export function calcularEstatisticasSmart(casos: CasoSmartRecord[]): EstatisticasSmart {
+  const total = casos.length;
+  if (total === 0) {
+    return {
+      total: 0,
+      scoreMedio: 0,
+      clientesUnicos: 0,
+      adquirenteTop: null,
+      modeloTop: null,
+      versaoTop: null,
+      taxaEvidencias: 0,
+      comEvidenciasCount: 0,
+      porAdquirente: [],
+      porVersao: [],
+      porConexao: [],
+      porModelo: [],
+      porCaminho: [],
+      faixasQualidade: [
+        { chave: 'excelente', rotulo: 'Excelente (≥ 85%)', quantidade: 0, percentual: 0, cor: '#22c55e' },
+        { chave: 'bom', rotulo: 'Bom (70-84%)', quantidade: 0, percentual: 0, cor: '#fbbf24' },
+        { chave: 'critico', rotulo: 'Atenção (< 70%)', quantidade: 0, percentual: 0, cor: '#ef4444' },
+      ],
+    };
+  }
+
+  // Score Médio
+  const somaScore = casos.reduce((acc, c) => acc + (Number(c.score) || 0), 0);
+  const scoreMedio = Math.round(somaScore / total);
+
+  // Clientes Únicos
+  const registrosSet = new Set<string>();
+  casos.forEach((c) => {
+    if (c.registro) registrosSet.add(c.registro.trim());
+  });
+  const clientesUnicos = registrosSet.size;
+
+  // Evidências
+  const comEvidencias = casos.filter(
+    (c) =>
+      Boolean(
+        c.linkHedgedoc?.trim() ||
+        c.linkPrint?.trim() ||
+        c.linkVideo?.trim() ||
+        c.linkArquivo?.trim() ||
+        c.linkDiscord?.trim()
+      )
+  );
+  const taxaEvidencias = Math.round((comEvidencias.length / total) * 1000) / 10;
+
+  // Agrupador auxiliar
+  function agrupar(chaveFn: (c: CasoSmartRecord) => string, maxItens = 10): ItemEstatisticaSmart[] {
+    const mapa = new Map<string, number>();
+    casos.forEach((c) => {
+      const valor = chaveFn(c)?.trim() || 'Não informado';
+      mapa.set(valor, (mapa.get(valor) || 0) + 1);
+    });
+
+    const ordenado = Array.from(mapa.entries())
+      .map(([rotulo, quantidade]) => ({
+        rotulo,
+        quantidade,
+        percentual: Math.round((quantidade / total) * 1000) / 10,
+      }))
+      .sort((a, b) => b.quantidade - a.quantidade);
+
+    return ordenado.slice(0, maxItens);
+  }
+
+  const porAdquirente = agrupar((c) => c.adquirente);
+  const porVersao = agrupar((c) => (c.versao ? `v${c.versao}` : ''));
+  const porConexao = agrupar((c) => c.conexao);
+  const porModelo = agrupar((c) => c.modelo);
+  const porCaminho = agrupar((c) => {
+    if (!c.caminho) return '';
+    const partes = c.caminho.split('>');
+    return partes[0]?.trim() || c.caminho.trim();
+  }, 8);
+
+  // Tops
+  const adquirenteTop = porAdquirente[0] ? { nome: porAdquirente[0].rotulo, quantidade: porAdquirente[0].quantidade, percentual: porAdquirente[0].percentual } : null;
+  const modeloTop = porModelo[0] ? { nome: porModelo[0].rotulo, quantidade: porModelo[0].quantidade, percentual: porModelo[0].percentual } : null;
+  const versaoTop = porVersao[0] ? { nome: porVersao[0].rotulo, quantidade: porVersao[0].quantidade, percentual: porVersao[0].percentual } : null;
+
+  // Faixas de Qualidade
+  let excelenteCount = 0;
+  let bomCount = 0;
+  let criticoCount = 0;
+
+  casos.forEach((c) => {
+    const s = Number(c.score) || 0;
+    if (s >= 85) excelenteCount++;
+    else if (s >= 70) bomCount++;
+    else criticoCount++;
+  });
+
+  const faixasQualidade: FaixaQualidadeSmart[] = [
+    {
+      chave: 'excelente',
+      rotulo: 'Excelente (≥ 85%)',
+      quantidade: excelenteCount,
+      percentual: Math.round((excelenteCount / total) * 1000) / 10,
+      cor: '#22c55e',
+    },
+    {
+      chave: 'bom',
+      rotulo: 'Bom (70-84%)',
+      quantidade: bomCount,
+      percentual: Math.round((bomCount / total) * 1000) / 10,
+      cor: '#fbbf24',
+    },
+    {
+      chave: 'critico',
+      rotulo: 'Atenção (< 70%)',
+      quantidade: criticoCount,
+      percentual: Math.round((criticoCount / total) * 1000) / 10,
+      cor: '#ef4444',
+    },
+  ];
+
+  return {
+    total,
+    scoreMedio,
+    clientesUnicos,
+    adquirenteTop,
+    modeloTop,
+    versaoTop,
+    taxaEvidencias,
+    comEvidenciasCount: comEvidencias.length,
+    porAdquirente,
+    porVersao,
+    porConexao,
+    porModelo,
+    porCaminho,
+    faixasQualidade,
+  };
+}
+
+function celulaCsv(valor: unknown): string {
+  const texto = String(valor ?? '');
+  return /[";\n\r]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto;
+}
+
+export function gerarCsvCasosSmart(casos: CasoSmartRecord[]): string {
+  const colunas = [
+    'Data/Hora',
+    'Registro',
+    'Cliente',
+    'CNPJ',
+    'Adquirente',
+    'Versao',
+    'Conexao',
+    'Modelo',
+    'Caminho',
+    'Resumo',
+    'Score Qualidade (%)',
+    'Qtd Passos',
+    'Qtd Descricoes',
+    'Link HedgeDoc',
+    'Link Print',
+    'Link Video',
+    'Link Arquivo',
+    'Link Discord',
+    'Link Cliente',
+  ];
+
+  const linhas = [colunas.join(';')];
+
+  casos.forEach((c) => {
+    linhas.push(
+      [
+        c.createdAt || '',
+        c.registro || '',
+        c.nome || '',
+        c.cnpj || '',
+        c.adquirente || '',
+        c.versao || '',
+        c.conexao || '',
+        c.modelo || '',
+        c.caminho || '',
+        c.resumo || '',
+        c.score || 0,
+        Array.isArray(c.passos) ? c.passos.length : 0,
+        Array.isArray(c.descricoes) ? c.descricoes.length : 0,
+        c.linkHedgedoc || '',
+        c.linkPrint || '',
+        c.linkVideo || '',
+        c.linkArquivo || '',
+        c.linkDiscord || '',
+        c.linkCliente || '',
+      ]
+        .map(celulaCsv)
+        .join(';')
+    );
+  });
+
+  return `\uFEFF${linhas.join('\r\n')}\r\n`;
+}
+
+export function baixarArquivoCsv(conteudo: string, nomeArquivo: string): void {
+  const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = nomeArquivo;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 

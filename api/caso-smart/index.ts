@@ -153,7 +153,7 @@ async function criar(req: VercelRequest, res: VercelResponse): Promise<void> {
 
 async function listar(req: VercelRequest, res: VercelResponse): Promise<void> {
   const limiteBruto = Number(param(req, 'limit'));
-  const limite = Number.isInteger(limiteBruto) && limiteBruto > 0 ? Math.min(limiteBruto, 200) : 50;
+  const limite = Number.isInteger(limiteBruto) && limiteBruto > 0 ? Math.min(limiteBruto, 500) : 100;
 
   let consulta = getSupabase()
     .from(TABELA_CASOS_SMART)

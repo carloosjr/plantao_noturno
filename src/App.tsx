@@ -9,6 +9,7 @@ import ProdutividadePage from './pages/ProdutividadePage';
 import ValidacaoAgendaPage from './pages/ValidacaoAgendaPage';
 import FechamentoPage from './pages/FechamentoPage';
 import CasoSmartPage from './pages/CasoSmartPage';
+import SmartDashboardPage from './pages/SmartDashboardPage';
 
 export default function App() {
   return (
@@ -18,6 +19,8 @@ export default function App() {
         <Route path="/painel" element={<PainelPage />} />
         <Route path="/registrar" element={<RegistrarPage />} />
         <Route path="/demandas" element={<DemandasPage />} />
+        <Route path="/smart/dashboard" element={<SmartDashboardPage />} />
+        <Route path="/smart-dashboard" element={<Navigate to="/smart/dashboard" replace />} />
         <Route path="/smart" element={<CasoSmartPage />} />
         <Route path="/caso-smart" element={<Navigate to="/smart" replace />} />
 

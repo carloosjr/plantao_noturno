@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   ADQUIRENTES_CONFIG,
   CONEXOES_SMART,
@@ -17,6 +18,7 @@ import PageHeader from '../components/PageHeader';
 import Toast, { type Aviso } from '../components/Toast';
 
 export default function CasoSmartPage() {
+  const location = useLocation();
   const [form, setForm] = useState<EstadoSmartForm>(() => ({ ...EXEMPLO_SMART }));
   const [aviso, setAviso] = useState<Aviso | null>(null);
 
@@ -47,6 +49,14 @@ export default function CasoSmartPage() {
   useEffect(() => {
     carregarListaCasos();
   }, []);
+
+  // Carregar caso recebido via navegação (do Dashboard)
+  useEffect(() => {
+    const estadoNav = location.state as { casoParaCarregar?: CasoSmartRecord } | null;
+    if (estadoNav?.casoParaCarregar) {
+      handleCarregarCaso(estadoNav.casoParaCarregar);
+    }
+  }, [location.state]);
 
   // Handler para atualizar campos simples
   function alterar<K extends keyof EstadoSmartForm>(campo: K, valor: EstadoSmartForm[K]) {
@@ -378,6 +388,13 @@ export default function CasoSmartPage() {
         subtitulo="Padronização de Casos & Registro de Erros Smart"
         acoes={
           <div className="smart-actions-header">
+            <Link
+              to="/smart/dashboard"
+              className="btn btn-secondary btn-sm"
+              title="Abrir Dashboard analítico com métricas, gráficos e histórico de Casos Smart"
+            >
+              📊 Ver Dashboard
+            </Link>
             <button
               type="button"
               className="btn btn-primary btn-sm highlight-spark"
