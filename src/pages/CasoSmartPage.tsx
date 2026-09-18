@@ -280,6 +280,7 @@ export default function CasoSmartPage() {
   // Carregar caso salvo no formulário
   function handleCarregarCaso(caso: CasoSmartRecord) {
     setForm({
+      numeroCaso: caso.numeroCaso || '',
       registro: caso.registro,
       nome: caso.nome || '',
       linkCliente: caso.linkCliente || '',
@@ -372,6 +373,7 @@ export default function CasoSmartPage() {
     const termo = filtroRegistro.trim().toLowerCase();
     return casosSalvos.filter(
       (c) =>
+        (c.numeroCaso && c.numeroCaso.includes(termo)) ||
         c.registro.includes(termo) ||
         (c.nome && c.nome.toLowerCase().includes(termo)) ||
         c.adquirente.toLowerCase().includes(termo) ||
@@ -473,6 +475,23 @@ export default function CasoSmartPage() {
 
             <div className="smart-grid-2">
               <div>
+                <label className="smart-label" htmlFor="smart-numero-caso">
+                  Número do Caso
+                </label>
+                <div className="client-input-wrap">
+                  <span className="client-input-prefix" aria-hidden="true">#</span>
+                  <input
+                    id="smart-numero-caso"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Ex: 104592"
+                    value={form.numeroCaso}
+                    onChange={(e) => alterar('numeroCaso', e.target.value.replace(/\D/g, ''))}
+                  />
+                </div>
+              </div>
+
+              <div>
                 <label className="smart-label" htmlFor="smart-registro">
                   Registro <span className="req">*</span>
                 </label>
@@ -503,19 +522,6 @@ export default function CasoSmartPage() {
               </div>
 
               <div>
-                <label className="smart-label" htmlFor="smart-link-cliente">
-                  Link do Sistema
-                </label>
-                <input
-                  id="smart-link-cliente"
-                  type="url"
-                  placeholder="Ex: https://exemplo.meusoftcom.com.br/"
-                  value={form.linkCliente}
-                  onChange={(e) => alterar('linkCliente', e.target.value)}
-                />
-              </div>
-
-              <div>
                 <label className="smart-label" htmlFor="smart-cnpj">
                   CNPJ (quando necessário)
                 </label>
@@ -525,6 +531,19 @@ export default function CasoSmartPage() {
                   placeholder="Ex: 00.000.000/0001-00"
                   value={form.cnpj}
                   onChange={(e) => alterar('cnpj', e.target.value)}
+                />
+              </div>
+
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label className="smart-label" htmlFor="smart-link-cliente">
+                  Link do Sistema
+                </label>
+                <input
+                  id="smart-link-cliente"
+                  type="url"
+                  placeholder="Ex: https://exemplo.meusoftcom.com.br/"
+                  value={form.linkCliente}
+                  onChange={(e) => alterar('linkCliente', e.target.value)}
                 />
               </div>
             </div>
@@ -1068,6 +1087,11 @@ export default function CasoSmartPage() {
                     <div className="smart-history-card" key={caso.id}>
                       <div className="smart-history-card-header">
                         <div className="smart-history-card-reg">
+                          {caso.numeroCaso ? (
+                            <span className="smart-reg-badge font-mono" style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', borderColor: 'rgba(168, 85, 247, 0.3)' }}>
+                              Caso #{caso.numeroCaso}
+                            </span>
+                          ) : null}
                           <span className="smart-reg-badge">Nº {caso.registro}</span>
                           {caso.nome ? <span className="smart-card-client">{caso.nome}</span> : null}
                         </div>

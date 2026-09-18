@@ -91,6 +91,7 @@ export default function SmartDashboardPage() {
       if (busca.trim()) {
         const termo = busca.toLowerCase().trim();
         const textoCompleto = [
+          c.numeroCaso,
           c.registro,
           c.nome,
           c.cnpj,
@@ -605,7 +606,21 @@ export default function SmartDashboardPage() {
 
                       <td>
                         <div className="smart-client-cell">
-                          <span className="smart-reg-badge font-mono">#{c.registro}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            {c.numeroCaso ? (
+                              <span
+                                className="smart-reg-badge font-mono"
+                                style={{
+                                  background: 'rgba(168, 85, 247, 0.15)',
+                                  color: '#c084fc',
+                                  borderColor: 'rgba(168, 85, 247, 0.3)',
+                                }}
+                              >
+                                Caso #{c.numeroCaso}
+                              </span>
+                            ) : null}
+                            <span className="smart-reg-badge font-mono">#{c.registro}</span>
+                          </div>
                           <span className="smart-client-name" title={c.nome || 'Sem nome'}>
                             {c.nome || 'Cliente não informado'}
                           </span>
@@ -743,7 +758,7 @@ export default function SmartDashboardPage() {
               <div>
                 <div className="smart-modal-subtitle">Detalhes do Caso Smart</div>
                 <h2 id="modal-case-title" className="smart-modal-title">
-                  Cliente #{casoSelecionado.registro} — {casoSelecionado.nome || 'Não informado'}
+                  {casoSelecionado.numeroCaso ? `Caso #${casoSelecionado.numeroCaso} • ` : ''}Cliente #{casoSelecionado.registro} — {casoSelecionado.nome || 'Não informado'}
                 </h2>
               </div>
               <button
@@ -759,6 +774,18 @@ export default function SmartDashboardPage() {
             <div className="smart-modal-body">
               {/* Badges de Topo */}
               <div className="smart-modal-badges">
+                {casoSelecionado.numeroCaso ? (
+                  <span
+                    className="smart-reg-badge font-mono"
+                    style={{
+                      background: 'rgba(168, 85, 247, 0.15)',
+                      color: '#c084fc',
+                      borderColor: 'rgba(168, 85, 247, 0.3)',
+                    }}
+                  >
+                    Caso #{casoSelecionado.numeroCaso}
+                  </span>
+                ) : null}
                 <span className="smart-reg-badge font-mono">Registro #{casoSelecionado.registro}</span>
                 <span className="smart-card-tag">{casoSelecionado.adquirente}</span>
                 <span className="smart-card-tag">{casoSelecionado.modelo}</span>

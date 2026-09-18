@@ -82,7 +82,8 @@ export interface DescricaoGrupo {
 }
 
 export interface EstadoSmartForm {
-  // Identificação do Cliente
+  // Identificação do Cliente & Caso
+  numeroCaso: string;
   registro: string;
   nome: string;
   linkCliente: string;
@@ -114,6 +115,7 @@ export interface EstadoSmartForm {
 }
 
 export const ESTADO_SMART_VAZIO: EstadoSmartForm = {
+  numeroCaso: '',
   registro: '',
   nome: '',
   linkCliente: '',
@@ -139,6 +141,7 @@ export const ESTADO_SMART_VAZIO: EstadoSmartForm = {
 };
 
 export const EXEMPLO_SMART: EstadoSmartForm = {
+  numeroCaso: '104829',
   registro: '58410',
   nome: 'Restaurante Sabor & Arte',
   linkCliente: 'https://saborarte.meusoftcom.com.br/',
@@ -247,6 +250,7 @@ export function validarChecklistSmart(form: EstadoSmartForm): ChecklistSmart {
 }
 
 export function gerarRelatorioSmart(form: EstadoSmartForm): string {
+  const numeroCaso = form.numeroCaso ? form.numeroCaso.trim() : '';
   const registro = form.registro.trim();
   const nome = form.nome.trim();
   const linkCliente = form.linkCliente.trim();
@@ -270,10 +274,11 @@ export function gerarRelatorioSmart(form: EstadoSmartForm): string {
   const arqEv = form.linkArquivo.trim();
   const discordEv = form.linkDiscord.trim();
 
-  // 1) Metadados do cliente
+  // 1) Metadados do cliente e caso
   let clienteInfo = '';
-  if (registro || nome || cnpj) {
+  if (numeroCaso || registro || nome || cnpj) {
     const infoItems: string[] = [];
+    if (numeroCaso) infoItems.push(`Caso: #${numeroCaso}`);
     if (registro) infoItems.push(`Registro: ${registro}`);
     if (nome) infoItems.push(`Cliente: ${nome}`);
     if (cnpj) infoItems.push(`CNPJ: ${cnpj}`);
@@ -620,6 +625,7 @@ function celulaCsv(valor: unknown): string {
 export function gerarCsvCasosSmart(casos: CasoSmartRecord[]): string {
   const colunas = [
     'Data/Hora',
+    'NumeroCaso',
     'Registro',
     'Cliente',
     'CNPJ',
@@ -646,6 +652,7 @@ export function gerarCsvCasosSmart(casos: CasoSmartRecord[]): string {
     linhas.push(
       [
         c.createdAt || '',
+        c.numeroCaso || '',
         c.registro || '',
         c.nome || '',
         c.cnpj || '',

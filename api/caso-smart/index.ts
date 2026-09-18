@@ -11,6 +11,7 @@ export interface DescricaoGrupoPayload {
 
 export interface CasoSmartRow {
   id: string;
+  numero_caso?: number | string | null;
   cliente_registro: number | string;
   cliente_nome: string | null;
   link_cliente: string | null;
@@ -35,12 +36,12 @@ export interface CasoSmartRow {
   updated_at: string;
 }
 
-const COLUNAS_CASO_SMART =
-  'id, cliente_registro, cliente_nome, link_cliente, cnpj, adquirente, versao, conexao, modelo, produto, caminho, resumo, descricoes, passos, link_hedgedoc, link_print, link_video, link_arquivo, link_discord, score, relatorio_markdown, created_at, updated_at';
+const COLUNAS_CASO_SMART = '*';
 
 function paraCasoSmart(row: CasoSmartRow) {
   return {
     id: row.id,
+    numeroCaso: row.numero_caso ? String(row.numero_caso) : '',
     registro: String(row.cliente_registro),
     nome: row.cliente_nome ?? '',
     linkCliente: row.link_cliente ?? '',
@@ -86,6 +87,10 @@ async function criar(req: VercelRequest, res: VercelResponse): Promise<void> {
     return erro(res, 400, 'Informe o registro do cliente (somente números positivos).');
   }
 
+  const numeroCasoBruto = typeof corpo.numeroCaso === 'string' ? corpo.numeroCaso.trim() : String(corpo.numeroCaso ?? '');
+  const numeroCasoNum = Number(numeroCasoBruto.replace(/\D/g, ''));
+  const numeroCaso = Number.isInteger(numeroCasoNum) && numeroCasoNum > 0 ? numeroCasoNum : null;
+
   const adquirente = typeof corpo.adquirente === 'string' ? corpo.adquirente.trim() : '';
   const versao = typeof corpo.versao === 'string' ? corpo.versao.trim() : '';
   const conexao = typeof corpo.conexao === 'string' ? corpo.conexao.trim() : '';
@@ -117,38 +122,54 @@ async function criar(req: VercelRequest, res: VercelResponse): Promise<void> {
   const score = Math.max(0, Math.min(100, Number(corpo.score) || 0));
   const relatorioMarkdown = typeof corpo.relatorioMarkdown === 'string' ? corpo.relatorioMarkdown : '';
 
-  const { data, error } = await getSupabase()
+  const objetoInsercao: Record<string, unknown> = {
+    cliente_registro: registro,
+    cliente_nome: nome,
+    link_cliente: linkCliente,
+    cnpj,
+    adquirente,
+    versao,
+    conexao,
+    modelo,
+    produto,
+    caminho,
+    resumo,
+    descricoes,
+    passos,
+    link_hedgedoc: linkHedgedoc,
+    link_print: linkPrint,
+    link_video: linkVideo,
+    link_arquivo: linkArquivo,
+    link_discord: linkDiscord,
+    score,
+    relatorio_markdown: relatorioMarkdown,
+  };
+
+  if (numeroCaso !== null) {
+    objetoInsercao.numero_caso = numeroCaso;
+  }
+
+  let insercao = await getSupabase()
     .from(TABELA_CASOS_SMART)
-    .insert({
-      cliente_registro: registro,
-      cliente_nome: nome,
-      link_cliente: linkCliente,
-      cnpj,
-      adquirente,
-      versao,
-      conexao,
-      modelo,
-      produto,
-      caminho,
-      resumo,
-      descricoes,
-      passos,
-      link_hedgedoc: linkHedgedoc,
-      link_print: linkPrint,
-      link_video: linkVideo,
-      link_arquivo: linkArquivo,
-      link_discord: linkDiscord,
-      score,
-      relatorio_markdown: relatorioMarkdown,
-    })
+    .insert(objetoInsercao)
     .select(COLUNAS_CASO_SMART)
     .single<CasoSmartRow>();
 
-  if (error || !data) {
-    return erro(res, 500, error?.message ?? 'Não foi possível salvar o caso Smart no banco de dados.');
+  if (insercao.error && numeroCaso !== null && insercao.error.message.includes('numero_caso')) {
+    // Fallback caso a coluna ainda não exista
+    delete objetoInsercao.numero_caso;
+    insercao = await getSupabase()
+      .from(TABELA_CASOS_SMART)
+      .insert(objetoInsercao)
+      .select(COLUNAS_CASO_SMART)
+      .single<CasoSmartRow>();
   }
 
-  return json(res, 201, paraCasoSmart(data));
+  if (insercao.error || !insercao.data) {
+    return erro(res, 500, insercao.error?.message ?? 'Não foi possível salvar o caso Smart no banco de dados.');
+  }
+
+  return json(res, 201, paraCasoSmart(insercao.data));
 }
 
 async function listar(req: VercelRequest, res: VercelResponse): Promise<void> {
